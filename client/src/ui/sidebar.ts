@@ -392,8 +392,8 @@ export class Sidebar implements UiComponent {
     r.head.dataset.room = n.agent.roomId;
     const router = this.ctx.terminals;
     const a = n.agent;
-    // Agente na nuvem do Cursor: sem terminal (só observação).
-    const canTerm = !!router?.available && a.status !== 'offline' && supportsLiveTerminal(providerOf(a));
+    // Agente na nuvem do Cursor: sem terminal (só observação). Os locais do Cursor têm o de leitura.
+    const canTerm = !!router?.available && a.status !== 'offline' && supportsLiveTerminal(providerOf(a), a.account);
     setHidden(r.term, !canTerm);
     if (canTerm && router) {
       const open = router.openAgentId === a.id;

@@ -17,6 +17,11 @@ do meio (0.**3**.0).
   ferramenta e o que dizem, ao vivo), ociosos por 2 horas depois que ela termina e com festa quando abrem um PR. Só
   observação: o Habblaud só lê (nunca cria, manda mensagem nem cancela), e os detalhes têm o link **Abrir no Cursor**.
   `HABBLAUD_CURSOR_CLOUD=0` desliga.
+- **Agentes locais do Cursor no escritório.** As conversas do agente do editor Cursor e da CLI `cursor-agent`
+  (`~/.cursor/projects/*/agent-transcripts/`) entram na sala do projeto, trabalhando enquanto a resposta é escrita e
+  com o terminal só de leitura. No WSL acha também `C:\Users\*\.cursor`; `HABBLAUD_CURSOR_DIRS` aponta outras pastas e
+  o `docker:up` monta só `projects/`, somente leitura. `HABBLAUD_CURSOR=0` desliga. A conta dos agentes na nuvem
+  passou a se chamar **Cursor Cloud** (letra N).
 
 ## [1.0.3] - 2026-10-16
 

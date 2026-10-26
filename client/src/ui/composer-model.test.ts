@@ -112,12 +112,17 @@ describe('caixa de mensagem (peças puras)', () => {
   });
 
   it('Cursor (nuvem): só observação, nunca recebe mensagem pelo escritório', () => {
-    const cursor = (over: Partial<AgentInfo> = {}) => agent({ provider: 'cursor', ...over });
+    const cursor = (over: Partial<AgentInfo> = {}) => agent({ provider: 'cursor', account: 'cursor-cloud', ...over });
     const off = { kind: 'off', text: 'Agente na nuvem do Cursor: para responder, abra o agente no Cursor' };
     expect(composerMode(cursor(), ON)).toEqual(off);
     expect(composerMode(cursor({ canMessage: true }), ON)).toEqual(off);
     expect(composerMode(cursor({ status: 'idle' }), { ...ON, enabled: false })).toEqual(off);
     expect(composerMode(cursor({ status: 'offline' }), ON)).toEqual({ kind: 'off', text: 'Sessão encerrada' });
+  });
+
+  it('Cursor (local): só observação, com a dica de usar o Cursor', () => {
+    const local = agent({ provider: 'cursor', account: '.cursor' });
+    expect(composerMode(local, ON)).toEqual({ kind: 'off', text: 'Agente do Cursor: para responder, use o Cursor' });
   });
 
   it('Codex: "Entregue" é a fila da sessão; dica e prazo falam do Codex', () => {

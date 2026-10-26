@@ -1258,7 +1258,7 @@ export const FR: Readonly<Record<string, string>> = {
   "[codex] Erro inesperado: {0}": "[codex] Erreur inattendue : {0}",
 
   // scripts/docker-up.ts
-  "Uso: npm run docker:up [-- opções]\n\nOpções:\n  --no-build   sobe sem reconstruir a imagem\n  --down       derruba o container (o mesmo que npm run docker:down)\n  -h, --help   mostra esta ajuda\n\nVariáveis: HABBLAUD_PORT (porta no host, padrão {0}), HABBLAUD_CLAUDE_DIRS\n(config dirs separados por vírgula, se as contas não estiverem em ~/.claude*), HABBLAUD_CODEX_DIRS\n(pastas do Codex, se não estiverem em ~/.codex* nem em CODEX_HOME) e HABBLAUD_CODEX=0 (sem o Codex).": "Usage : npm run docker:up [-- options]\n\nOptions :\n  --no-build   démarre sans reconstruire l'image\n  --down       arrête le conteneur (comme npm run docker:down)\n  -h, --help   affiche cette aide\n\nVariables : HABBLAUD_PORT (port sur l'hôte, par défaut {0}), HABBLAUD_CLAUDE_DIRS\n(dossiers de configuration séparés par des virgules, si les comptes ne sont pas dans ~/.claude*), HABBLAUD_CODEX_DIRS\n(dossiers Codex, s'ils ne sont ni dans ~/.codex* ni dans CODEX_HOME) et HABBLAUD_CODEX=0 (sans Codex).",
+  "Uso: npm run docker:up [-- opções]\n\nOpções:\n  --no-build   sobe sem reconstruir a imagem\n  --down       derruba o container (o mesmo que npm run docker:down)\n  -h, --help   mostra esta ajuda\n\nVariáveis: HABBLAUD_PORT (porta no host, padrão {0}), HABBLAUD_CLAUDE_DIRS\n(config dirs separados por vírgula, se as contas não estiverem em ~/.claude*), HABBLAUD_CODEX_DIRS\n(pastas do Codex, se não estiverem em ~/.codex* nem em CODEX_HOME), HABBLAUD_CODEX=0 (sem o Codex),\nHABBLAUD_CURSOR_DIRS (pastas do Cursor, se não estiverem em ~/.cursor nem, no WSL, em C:\\Users\\*\\.cursor) e\nHABBLAUD_CURSOR=0 (sem as conversas locais do Cursor).": "Usage : npm run docker:up [-- options]\n\nOptions :\n  --no-build   démarre sans reconstruire l'image\n  --down       arrête le conteneur (comme npm run docker:down)\n  -h, --help   affiche cette aide\n\nVariables : HABBLAUD_PORT (port sur l'hôte, par défaut {0}), HABBLAUD_CLAUDE_DIRS\n(dossiers de configuration séparés par des virgules, si les comptes ne sont pas dans ~/.claude*), HABBLAUD_CODEX_DIRS\n(dossiers Codex, s'ils ne sont ni dans ~/.codex* ni dans CODEX_HOME), HABBLAUD_CODEX=0 (sans Codex),\nHABBLAUD_CURSOR_DIRS (dossiers Cursor, s'ils ne sont ni dans ~/.cursor ni, sous WSL, dans C:\\Users\\*\\.cursor) et\nHABBLAUD_CURSOR=0 (sans les conversations locales de Cursor).",
   "[docker-up] Atenção: {0}": "[docker-up] Attention : {0}",
   "uso atualizado": "utilisation à jour",
   "uso desatualizado": "utilisation pas à jour",
@@ -3308,4 +3308,12 @@ export const FR: Readonly<Record<string, string>> = {
   "A execução terminou com erro": "L'exécution s'est terminée par une erreur",
   "A execução foi cancelada": "L'exécution a été annulée",
   "A execução expirou": "L'exécution a expiré",
+  "Agente do Cursor: para responder, use o Cursor": "Agent Cursor : pour répondre, utilisez Cursor",
+  "Agente do Cursor neste computador (só observação)": "Agent Cursor sur cet ordinateur (observation seule)",
+  "   Cursor (local): {0} pasta(s), {1} conversa(s) no escritório (só observação).": "   Cursor (local) : {0} dossier(s), {1} conversation(s) au bureau (observation seule).",
+  "   Cursor (local): nenhuma pasta do Cursor encontrada (defina HABBLAUD_CURSOR_DIRS).": "   Cursor (local) : aucun dossier Cursor trouvé (définissez HABBLAUD_CURSOR_DIRS).",
+  "Agente local (Cursor)": "Agent local (Cursor)",
+  "Cursor (local): falha ao ler as conversas: {0}": "Cursor (local) : échec de lecture des conversations : {0}",
+  "A resposta terminou com erro": "La réponse s'est terminée par une erreur",
+  "Cursor (local): monta projects de {0} em {1}, somente leitura.": "Cursor (local) : monte projects de {0} dans {1}, en lecture seule.",
 };

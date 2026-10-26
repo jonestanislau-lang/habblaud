@@ -629,6 +629,24 @@ Docker, in the `.env` file next to `docker-compose.yml` — and restart Habblaud
 - Cursor allows about 20 requests per minute: Habblaud reads at most 8 runs per round, follows at most 4 streams and
   waits when Cursor asks it to (429). `HABBLAUD_CURSOR_CLOUD=0` turns it off without removing the key.
 
+### Local Cursor agents
+
+Conversations from the Cursor editor's agent and from the `cursor-agent` CLI on your computer show up too, with no
+setup: Habblaud reads `~/.cursor/projects/*/agent-transcripts/` (read only; it never writes to the Cursor folder).
+
+- **Windows + WSL/Docker:** when Habblaud runs in WSL (or in Docker on WSL), it also finds
+  `C:\Users\<you>\.cursor` through `/mnt/c/Users/<you>/.cursor`. Elsewhere, point to the folder with
+  `HABBLAUD_CURSOR_DIRS=/mnt/c/Users/jonyy/.cursor` (comma-separated). `npm run docker:up` mounts **only** its
+  `projects/` folder, read only — never extensions, settings or keys.
+- **Where they go:** to the room of the folder Cursor has open (taken from the file paths the agent touched), so they
+  sit with your Claude Code and Codex sessions of the same project.
+- **Status:** working while a reply is being written (the conversation file keeps changing and the turn hasn't ended),
+  idle when it ends or after 10 minutes without changes, and it leaves after 30 minutes. Cursor doesn't save times or
+  tool results in this file, so the times shown are those of the last change.
+- **Observe only:** the character carries the **Cursor** account (letter R); the terminal shows the conversation (read
+  only); messages and approvals stay in Cursor. Subagents are counted, not shown as separate characters.
+  `HABBLAUD_CURSOR=0` turns it off.
+
 ### GitHub in the office
 
 What the agents do on GitHub livens up the project's room, with no token and no internet access: Habblaud reads the
@@ -755,6 +773,8 @@ Everything works without configuring anything. If you need to adjust something, 
 | `HABBLAUD_CURSOR_CLOUD_POLL_SECONDS` | `30` | How often to read the agent list (minimum 10). |
 | `HABBLAUD_CURSOR_CLOUD_IDLE_HOURS` | `2` | How long a cloud agent stays idle in the office after its run ends. |
 | `HABBLAUD_CURSOR_CLOUD_ROOMS` | — | Repository → local folder, comma-separated (e.g. `jonas/mercadohub=/home/jonas/dev/mercadohub`). |
+| `HABBLAUD_CURSOR` | on | `0` turns off [local Cursor agents](#local-cursor-agents). |
+| `HABBLAUD_CURSOR_DIRS` | `~/.cursor` (+ `C:\Users\*\.cursor` on WSL) | Cursor folders, comma-separated (e.g. `/mnt/c/Users/jonyy/.cursor`). |
 | `HABBLAUD_UPDATE_CHECK` | on | `0` turns off the new-version check (a request to the repository's releases on GitHub every 6 h). |
 | `HABBLAUD_LANG` | system language (except English), otherwise `pt-BR` | Language of the texts the server builds (activities, notices, logs): `pt-BR`, `en`, `es` or `fr`. The interface follows the browser or the choice in Settings › Language. See [Languages](#languages). |
 | `HABBLAUD_ACCOUNTS` | — | JSON to customize name, letter or color, matched by the account folder name. E.g. `[{"id":".claude-conta2","name":"Trabalho","short":"T","color":"#5cc97b"}]`. |

@@ -9,6 +9,8 @@ import {
   hasCodexPermission,
   isCodex,
   isCursor,
+  isCursorCloud,
+  looksLikeLocalCursorId,
   looksLikeCursorId,
   providerTagText,
   supportsLiveTerminal,
@@ -93,22 +95,36 @@ describe('ferramenta (Claude Code ou Codex)', () => {
     expect(codexApprovalLabel(undefined)).toBe('—');
   });
 
-  it('Cursor (nuvem): sem terminal, selo "Nuvem", conta "cursor-cloud" com a letra R e fora dos cartões de uso e dos atalhos', () => {
+  it('Cursor (nuvem): sem terminal, selo "Nuvem", conta "cursor-cloud" com a letra N e fora dos cartões de uso e dos atalhos', () => {
     expect(isCursor({ provider: 'cursor' })).toBe(true);
     expect(isCursor({ provider: 'codex' })).toBe(false);
-    expect(supportsLiveTerminal('cursor')).toBe(false);
+    expect(isCursorCloud({ provider: 'cursor', account: 'cursor-cloud' })).toBe(true);
+    expect(isCursorCloud({ provider: 'cursor', account: '.cursor' })).toBe(false);
+    expect(supportsLiveTerminal('cursor', 'cursor-cloud')).toBe(false);
     expect(supportsLiveTerminal('claude')).toBe(true);
     expect(supportsLiveTerminal('codex')).toBe(true);
     expect(looksLikeCursorId('cursor-cloud')).toBe(true);
     expect(looksLikeCursorId('demo:cursor-cloud')).toBe(true);
     expect(looksLikeCursorId('.cursor')).toBe(false);
     expect(accountProvider(undefined, 'cursor-cloud')).toBe('cursor');
-    expect(fallbackShort('cursor-cloud')).toBe('R');
-    expect(showsProviderTag('cursor', 'Cursor')).toBe(true);
-    expect(providerTagText('cursor').text).toBe('Nuvem');
+    expect(fallbackShort('cursor-cloud')).toBe('N');
+    expect(showsProviderTag('cursor', 'Cursor Cloud', 'cursor-cloud')).toBe(true);
+    expect(providerTagText('cursor', 'cursor-cloud').text).toBe('Nuvem');
     expect(providerTagText('codex').text).toBe('Codex');
     const accounts = [{ id: 'a', provider: 'claude' as const }, { id: 'b', provider: 'codex' as const }, { id: 'c', provider: 'cursor' as const }, { id: 'd' }];
     expect(usageCardAccounts(accounts).map((a) => a.id)).toEqual(['a', 'b', 'd']);
     expect(emptyOfficeHint([{ short: 'C' }, { short: 'R', provider: 'cursor' }])).toBe('Abra o Claude Code em qualquer projeto (atalho c) e veja seu agente chegar.');
+  });
+
+  it('Cursor (local): terminal só de leitura, conta ".cursor" com a letra R, selo "Cursor" só quando o nome não diz', () => {
+    expect(supportsLiveTerminal('cursor', '.cursor')).toBe(true);
+    expect(looksLikeLocalCursorId('.cursor')).toBe(true);
+    expect(looksLikeLocalCursorId('demo:.cursor~2')).toBe(true);
+    expect(looksLikeLocalCursorId('.claude')).toBe(false);
+    expect(accountProvider(undefined, '.cursor')).toBe('cursor');
+    expect(fallbackShort('.cursor')).toBe('R');
+    expect(showsProviderTag('cursor', 'Cursor', '.cursor')).toBe(false);
+    expect(showsProviderTag('cursor', 'Editor', '.cursor')).toBe(true);
+    expect(providerTagText('cursor', '.cursor').text).toBe('Cursor');
   });
 });

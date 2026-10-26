@@ -16,6 +16,9 @@
 //    sessions/, archived_sessions/ e thread-writer-locks/ de cada uma, somente leitura, em /codex/<conta>/... —
 //    nunca auth.json, config.toml, shell_snapshots/, history.jsonl, logs nem os SQLite. Vão em HABBLAUD_CODEX_DIRS
 //    e, com `provider: 'codex'` e a pasta do HOST (onde o `codex queue` roda), em HABBLAUD_ACCOUNTS.
+//    Conversas locais do Cursor (~/.cursor, HABBLAUD_CURSOR_DIRS ou, no WSL, C:\Users\*\.cursor; HABBLAUD_CURSOR=0
+//    desliga): SOMENTE <pasta>/projects, somente leitura, em /cursor-local/<n>/projects — nunca o resto da pasta
+//    (extensões, cli-config.json, chaves). Vão em HABBLAUD_CURSOR_DIRS.
 // 3. Migra o que sobrou do nome antigo (CodeTown, até a 0.3.2): ~/.codetown vira ~/.habblaud, o container
 //    `codetown` e a rede codetown_default saem e, se o volume novo ainda não existe, os dados de
 //    codetown_codetown-data são copiados para ele (o antigo fica, para apagar à mão). Avisa de CODETOWN_*
@@ -40,6 +43,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { AccountInfo, SourceInfo } from '../shared/types';
 import { codexDirsRefused, detectAccounts, discoverClaudeDirs, type DetectedAccount } from '../server/accounts/detect';
 import { detectCodexAccounts, discoverCodexDirs } from '../server/sources/codex/accounts';
+import { cursorLocalDisabled, discoverCursorDirs } from '../server/sources/cursor-local/files';
 import { describeStateMigration, LEGACY_NAME, legacyEnvWarning, migrateLegacyStateDir } from '../server/legacy';
 import { makeClaudeRunner, MIN_CLAUDE_VERSION, readPackageVersion, updateInstalledMods, type ModUpdateResult } from './mod-install';
 import { tr } from '../shared/i18n';
@@ -66,6 +70,8 @@ const CONTAINER_ROOT = '/claude';
 const MOUNTED_SUBDIRS = ['projects', 'sessions'] as const;
 /** Raiz das montagens do Codex dentro do container: /codex/<conta>/{sessions,archived_sessions,thread-writer-locks}. */
 const CODEX_CONTAINER_ROOT = '/codex';
+/** Raiz das montagens das conversas locais do Cursor: /cursor-local/<n>/projects. */
+const CURSOR_CONTAINER_ROOT = '/cursor-local';
 /**
  * Somente estas subpastas de cada pasta do Codex entram no container (as conversas e os locks das sessões abertas).
  * auth.json, config.toml, shell_snapshots/, history.jsonl, logs e os SQLite ficam no host.
@@ -84,7 +90,7 @@ const LEGACY_DOCKER = {
   image: `${LEGACY_NAME}:local`,
 } as const;
 
-const USAGE = tr('Uso: npm run docker:up [-- opções]\n\nOpções:\n  --no-build   sobe sem reconstruir a imagem\n  --down       derruba o container (o mesmo que npm run docker:down)\n  -h, --help   mostra esta ajuda\n\nVariáveis: HABBLAUD_PORT (porta no host, padrão {0}), HABBLAUD_CLAUDE_DIRS\n(config dirs separados por vírgula, se as contas não estiverem em ~/.claude*), HABBLAUD_CODEX_DIRS\n(pastas do Codex, se não estiverem em ~/.codex* nem em CODEX_HOME) e HABBLAUD_CODEX=0 (sem o Codex).', [DEFAULT_PORT]);
+const USAGE = tr('Uso: npm run docker:up [-- opções]\n\nOpções:\n  --no-build   sobe sem reconstruir a imagem\n  --down       derruba o container (o mesmo que npm run docker:down)\n  -h, --help   mostra esta ajuda\n\nVariáveis: HABBLAUD_PORT (porta no host, padrão {0}), HABBLAUD_CLAUDE_DIRS\n(config dirs separados por vírgula, se as contas não estiverem em ~/.claude*), HABBLAUD_CODEX_DIRS\n(pastas do Codex, se não estiverem em ~/.codex* nem em CODEX_HOME), HABBLAUD_CODEX=0 (sem o Codex),\nHABBLAUD_CURSOR_DIRS (pastas do Cursor, se não estiverem em ~/.cursor nem, no WSL, em C:\\Users\\*\\.cursor) e\nHABBLAUD_CURSOR=0 (sem as conversas locais do Cursor).', [DEFAULT_PORT]);
 
 // ---------------------------------------------------------------------------------------------
 // Saída no terminal
@@ -229,6 +235,25 @@ export function planCodexMounts(dirs: string[], accounts: DetectedAccount[], res
   return out;
 }
 
+/** Montagem das conversas locais do Cursor: SÓ <pasta>/projects, em /cursor-local/<n>/projects. */
+export interface CursorMount {
+  hostDir: string;
+  mountDir: string;
+  binds: BindMount[];
+}
+
+/** Monta só projects/ de cada pasta do Cursor (as que o tiverem), em /cursor-local/1, /cursor-local/2... */
+export function planCursorMounts(dirs: string[], resolveDir: (p: string) => string | undefined = realDir): CursorMount[] {
+  const out: CursorMount[] = [];
+  for (const hostDir of dirs) {
+    const source = resolveDir(join(hostDir, 'projects'));
+    if (!source) continue;
+    const mountDir = posix.join(CURSOR_CONTAINER_ROOT, String(out.length + 1));
+    out.push({ hostDir, mountDir, binds: [{ source, target: posix.join(mountDir, 'projects') }] });
+  }
+  return out;
+}
+
 /** Metadados das contas do Codex para HABBLAUD_ACCOUNTS: `provider: 'codex'` e a pasta do HOST em `configDir`. */
 export function codexAccountsPayload(mounts: AccountMount[]): AccountPayload[] {
   return mounts.map(({ account: a, hostDir, mountDir }) => {
@@ -306,7 +331,7 @@ export function hostTimeZone(env: NodeJS.ProcessEnv = process.env): string | und
 /**
  * `usageDir`: pasta do host com o uso capturado pelo tap de statusline (já existente; caminho real),
  * montada somente leitura em /usage. `timeZone`: fuso do host, repassado como TZ. `codex`: montagens das contas do
- * Codex (planCodexMounts).
+ * Codex (planCodexMounts). `cursor`: montagens das conversas locais do Cursor (planCursorMounts).
  */
 export function renderOverride(
   mounts: AccountMount[],
@@ -316,12 +341,14 @@ export function renderOverride(
   codex: AccountMount[] = [],
   remoteTlsDir?: string,
   extraPorts: string[] = [],
+  cursor: CursorMount[] = [],
 ): string {
   const env: Array<[string, string]> = [
     ['HABBLAUD_CLAUDE_DIRS', mounts.map((m) => m.mountDir).join(',')],
     ['HABBLAUD_ACCOUNTS', JSON.stringify([...accountsPayload(mounts), ...codexAccountsPayload(codex)])],
   ];
   if (codex.length) env.push(['HABBLAUD_CODEX_DIRS', codex.map((m) => m.mountDir).join(',')]);
+  if (cursor.length) env.push(['HABBLAUD_CURSOR_DIRS', cursor.map((m) => m.mountDir).join(',')]);
   if (usageDir) env.push(['HABBLAUD_USAGE_DIR', CONTAINER_USAGE_DIR]);
   if (timeZone) env.push(['TZ', timeZone]);
   const lines = [
@@ -329,6 +356,7 @@ export function renderOverride(
     '# Contém caminhos do host e e-mails das contas: fica fora do git e com permissão 600.',
     '# Montagens: SOMENTE <conta>/projects, <conta>/sessions e a pasta do uso do statusline, todas somente leitura.',
     ...(codex.length ? ['# Codex: SOMENTE <pasta>/sessions, <pasta>/archived_sessions e <pasta>/thread-writer-locks, somente leitura.'] : []),
+    ...(cursor.length ? ['# Cursor (conversas locais): SOMENTE <pasta>/projects, somente leitura.'] : []),
     'services:',
     `  ${SERVICE}:`,
     '    environment:',
@@ -336,7 +364,7 @@ export function renderOverride(
   ];
   // O Compose junta estas portas às do docker-compose.yml.
   if (extraPorts.length) lines.push('    ports:', ...extraPorts.map((p) => `      - ${yamlString(p)}`));
-  const binds = [...mounts, ...codex].flatMap((m) => m.binds);
+  const binds = [...mounts, ...codex, ...cursor].flatMap((m) => m.binds);
   if (usageDir) binds.push({ source: usageDir, target: CONTAINER_USAGE_DIR });
   // Acesso remoto: SÓ a pasta do certificado do servidor (a chave da CA fica no host).
   if (remoteTlsDir) binds.push({ source: remoteTlsDir, target: CONTAINER_REMOTE_TLS_DIR });
@@ -707,13 +735,17 @@ async function up(opts: Options, port: number): Promise<void> {
     }
   }
 
+  // Conversas locais do Cursor (editor e cursor-agent): só <pasta>/projects. No WSL, acha também C:\Users\*\.cursor.
+  const cursorMounts = cursorLocalDisabled(process.env) ? [] : planCursorMounts(discoverCursorDirs(process.env, HOME));
+  for (const m of cursorMounts) say(tr('Cursor (local): monta projects de {0} em {1}, somente leitura.', [tildify(m.hostDir), m.mountDir]));
+
   migrateStateDir();
   const usageDir = ensureUsageDir();
   if (usageDir) say(tr('Uso ao vivo (mod ou tap de statusline): monta {0} em {1}, somente leitura.', [tildify(USAGE_DIR), CONTAINER_USAGE_DIR]));
   const remoteTlsDir = prepareRemoteTls();
   const remotePorts = remoteTlsDir || remoteInsecure() ? remotePortsToPublish() : [];
   const tmp = `${OVERRIDE_FILE}.tmp`;
-  writeFileSync(tmp, renderOverride(mounts, new Date(), usageDir, hostTimeZone(), codexMounts, remoteTlsDir, remotePorts), { mode: 0o600 });
+  writeFileSync(tmp, renderOverride(mounts, new Date(), usageDir, hostTimeZone(), codexMounts, remoteTlsDir, remotePorts, cursorMounts), { mode: 0o600 });
   chmodSync(tmp, 0o600);
   renameSync(tmp, OVERRIDE_FILE);
   say(tr('docker-compose.override.yml gerado.'));

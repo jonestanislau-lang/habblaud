@@ -139,9 +139,13 @@ export class CursorCloudSource implements AgentSource {
     this.now = opts.now ?? Date.now;
     this.timing = { pollMs: opts.config.pollMs, idleMs: opts.config.idleMs, stallMs: STALL_MS, backlogMs: BACKLOG_MS, ...opts.timing };
     this.client = new CursorCloudClient({ apiKey: opts.config.apiKey, baseUrl: opts.config.baseUrl, fetch: opts.fetch });
-    const [entry] = opts.accounts.setProviderAccounts('cursor', [
-      { dir: opts.config.baseUrl, detected: { id: CURSOR_CLOUD_ACCOUNT, configDir: opts.config.baseUrl, short: 'R', name: 'Cursor', color: '#7c8cff' } },
-    ]);
+    const [entry] = opts.accounts.setProviderAccounts(
+      'cursor',
+      [
+        { dir: opts.config.baseUrl, detected: { id: CURSOR_CLOUD_ACCOUNT, configDir: opts.config.baseUrl, short: 'N', name: 'Cursor Cloud', color: '#7c8cff' } },
+      ],
+      CURSOR_CLOUD_ACCOUNT,
+    );
     this.accountId = entry!.id;
   }
 

@@ -276,6 +276,14 @@ describe('uso (5h e semanal)', () => {
       svc.setProviderAccounts('codex', []);
       expect(svc.allEntries().map((e) => e.id)).toEqual(['.claude']);
       expect(svc.list(new Map()).map((a) => a.id)).toEqual(['.claude']);
+
+      // Duas fontes da mesma ferramenta (Cursor na nuvem e local): grupos separados, uma não apaga a outra.
+      const cur = (id: string) => ({ id, configDir: id, short: 'R', name: 'Cursor', color: '#000' });
+      svc.setProviderAccounts('cursor', [{ dir: 'nuvem', detected: cur('cursor-cloud') }], 'cursor-cloud');
+      svc.setProviderAccounts('cursor', [{ dir: '/c/.cursor', detected: cur('.cursor') }], 'cursor-local');
+      expect(svc.entriesOf('cursor').map((e) => e.id)).toEqual(['cursor-cloud', '.cursor']);
+      svc.setProviderAccounts('cursor', [], 'cursor-cloud');
+      expect(svc.entriesOf('cursor').map((e) => e.id)).toEqual(['.cursor']);
     } finally {
       tmp.cleanup();
     }

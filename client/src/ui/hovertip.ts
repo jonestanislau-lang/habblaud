@@ -91,7 +91,7 @@ export class HoverTip implements UiComponent {
     }
     setText(this.name, a.name);
     updateAccountChip(this.chip, this.ctx.account(a.account), a.account, a.provider);
-    updateProviderTag(this.prov, providerOf(a));
+    updateProviderTag(this.prov, providerOf(a), this.ctx.account(a.account)?.name ?? '', a.account);
     // Esperando um shell: o que ele espera (com o tempo correndo) e o que anda fazendo enquanto isso.
     const now = this.ctx.now();
     const wait = shellWaitIn(a, this.ctx.store.snapshot?.agents ?? [], now);

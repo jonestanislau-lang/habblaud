@@ -38,6 +38,8 @@ import { discoverCodexDirs } from './sources/codex/accounts';
 import { CodexHistory } from './sources/codex/history';
 import { CodexSource } from './sources/codex/source';
 import { CursorCloudSource } from './sources/cursor-cloud/source';
+import { CursorLocalSource } from './sources/cursor-local/source';
+import { discoverCursorDirs } from './sources/cursor-local/files';
 import { createBuildReader, readBuildInfo } from './build';
 import { UpdateChecker } from './updates/checker';
 import { getLocale, tr } from '../shared/i18n';
@@ -143,6 +145,12 @@ if (codex) agents.add(codex);
 // observação. HABBLAUD_CURSOR_CLOUD=0 desliga (ver config.ts).
 const cursorCloud = config.cursorCloud ? new CursorCloudSource({ accounts, office, config: config.cursorCloud }) : undefined;
 if (cursorCloud) agents.add(cursorCloud);
+// Agentes locais do Cursor (sources/cursor-local/): as conversas do editor e do cursor-agent em
+// <pasta do Cursor>/projects/*/agent-transcripts (~/.cursor, HABBLAUD_CURSOR_DIRS ou, no WSL, C:\Users\*\.cursor); só
+// observação. HABBLAUD_CURSOR=0 desliga.
+const cursorDirs = config.cursorLocal ? discoverCursorDirs(process.env, config.home) : [];
+const cursorLocal = cursorDirs.length ? new CursorLocalSource({ accounts, office, dirs: cursorDirs }) : undefined;
+if (cursorLocal) agents.add(cursorLocal);
 // Eventos dos hooks do Codex (POST /api/codex/events, mod/habblaud-codex/hook.mjs): vão para a fonte do Codex ao vivo
 // (CodexLive); sem ela (nenhuma pasta do Codex ou HABBLAUD_CODEX=0) a rota responde {ok: false}.
 const codexLive: CodexLive | undefined = codex;
@@ -496,6 +504,10 @@ server.listen(config.port, config.host, () => {
   } else {
     log.info(tr('   Codex: {0}.', [config.codex ? tr('nenhuma pasta do Codex encontrada (defina HABBLAUD_CODEX_DIRS)') : tr('desligado (HABBLAUD_CODEX=0)')]));
   }
+  if (cursorLocal) {
+    const [src] = cursorLocal.sources();
+    log.info(tr('   Cursor (local): {0} pasta(s), {1} conversa(s) no escritório (só observação).', [cursorDirs.length, src?.sessions ?? 0]));
+  } else if (config.cursorLocal) log.info(tr('   Cursor (local): nenhuma pasta do Cursor encontrada (defina HABBLAUD_CURSOR_DIRS).'));
   if (cursorCloud) {
     const [src] = cursorCloud.sources();
     log.info(tr('   Cursor (nuvem): ligado, {0} agente(s) no escritório (só observação).', [src?.sessions ?? 0]));

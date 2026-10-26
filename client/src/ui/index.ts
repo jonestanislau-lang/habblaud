@@ -22,7 +22,7 @@ import { HistoryPopover } from './history';
 import { Deliveries } from './deliveries';
 import { HoverTip } from './hovertip';
 import { hasRunningShells } from './model';
-import { hasCodexPermission, providerOf, supportsLiveTerminal } from './provider';
+import { hasCodexPermission, isCursor, providerOf, supportsLiveTerminal } from './provider';
 import { Notifier } from './notify';
 import { ConnectionBanner, EmptyState, Splash } from './overlays';
 import { focusPermission, nextPermissionAgent } from './permission';
@@ -201,9 +201,10 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
     open(id, opener) {
       // Agente na nuvem do Cursor: não há terminal (só observação).
       const agent = ctx.agent(id);
-      if (agent && !supportsLiveTerminal(providerOf(agent))) return ctx.announce(CURSOR_NO_TERMINAL);
+      if (agent && !supportsLiveTerminal(providerOf(agent), agent.account)) return ctx.announce(CURSOR_NO_TERMINAL);
       const readOnly = !!store.snapshot?.meta.terminal && !store.replaying;
-      if (pty.ptyOf(id) || (pty.enabled && !readOnly && ctx.agent(id)?.kind === 'main')) pty.openAgent(id);
+      // Agente local do Cursor: só o terminal de leitura (a conversa do arquivo), nunca o interativo.
+      if (pty.ptyOf(id) || (pty.enabled && !readOnly && agent?.kind === 'main' && !isCursor(agent))) pty.openAgent(id);
       else {
         pty.close();
         terminal.open(id, opener);
@@ -478,8 +479,8 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
   function toggleTerminal(): void {
     const id = selection?.type === 'agent' ? selection.id : null;
     const sel = id !== null ? ctx.agent(id) : undefined;
-    if (sel && !supportsLiveTerminal(providerOf(sel)) && !terminal.isOpen && !pty.isOpen) return ctx.announce(CURSOR_NO_TERMINAL);
-    if (id !== null && pty.enabled && ctx.agent(id)?.kind === 'main') return router.toggle(id);
+    if (sel && !supportsLiveTerminal(providerOf(sel), sel.account) && !terminal.isOpen && !pty.isOpen) return ctx.announce(CURSOR_NO_TERMINAL);
+    if (id !== null && pty.enabled && sel?.kind === 'main' && !isCursor(sel)) return router.toggle(id);
     if (id === null && pty.isOpen) return pty.close();
     if (terminal.isOpen && (id === null || terminal.agentId === id)) terminal.close();
     else if (id === null) ctx.announce(tr('Selecione um agente para abrir o terminal.'));

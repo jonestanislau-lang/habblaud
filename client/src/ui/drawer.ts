@@ -553,7 +553,7 @@ class AgentView {
     setTitle(this.title, a.title ?? '');
     updateAccountChip(this.accChip, account, a.account, a.provider);
     setText(this.accName, account?.name ?? a.account);
-    updateProviderTag(this.accProv, provider, account?.name ?? '');
+    updateProviderTag(this.accProv, provider, account?.name ?? '', a.account);
     // E-mail (Claude Code) ou, no Codex (sem e-mail), o plano.
     const accSub = account?.email ?? (codex && account?.plan ? tr('plano {0}', [account.plan]) : '');
     setText(this.accEmail, accSub);
@@ -714,7 +714,7 @@ class AgentView {
     // aria-disabled (e não disabled): o botão continua focável e a dica do porquê aparece no hover.
     // Agente na nuvem do Cursor: sem terminal (roda na nuvem; a conversa é no Cursor). O botão some; o link "Abrir no
     // Cursor" (cloudLink) fica no lugar.
-    const noTerm = !supportsLiveTerminal(provider);
+    const noTerm = !supportsLiveTerminal(provider, this.last?.account);
     setHidden(this.termBtn, noTerm && !open);
     if (noTerm) setHidden(this.termWhy, true);
     const enabled = open || (available && live && !noTerm);
