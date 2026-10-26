@@ -8,6 +8,11 @@ import {
   fallbackShort,
   hasCodexPermission,
   isCodex,
+  isCursor,
+  looksLikeCursorId,
+  providerTagText,
+  supportsLiveTerminal,
+  usageCardAccounts,
   looksLikeCodexId,
   providerOf,
   showsProviderTag,
@@ -86,5 +91,24 @@ describe('ferramenta (Claude Code ou Codex)', () => {
     expect(codexApprovalLabel('never')).toBe('Nunca pergunta');
     expect(codexApprovalLabel('outra')).toBe('outra');
     expect(codexApprovalLabel(undefined)).toBe('—');
+  });
+
+  it('Cursor (nuvem): sem terminal, selo "Nuvem", conta "cursor-cloud" com a letra R e fora dos cartões de uso e dos atalhos', () => {
+    expect(isCursor({ provider: 'cursor' })).toBe(true);
+    expect(isCursor({ provider: 'codex' })).toBe(false);
+    expect(supportsLiveTerminal('cursor')).toBe(false);
+    expect(supportsLiveTerminal('claude')).toBe(true);
+    expect(supportsLiveTerminal('codex')).toBe(true);
+    expect(looksLikeCursorId('cursor-cloud')).toBe(true);
+    expect(looksLikeCursorId('demo:cursor-cloud')).toBe(true);
+    expect(looksLikeCursorId('.cursor')).toBe(false);
+    expect(accountProvider(undefined, 'cursor-cloud')).toBe('cursor');
+    expect(fallbackShort('cursor-cloud')).toBe('R');
+    expect(showsProviderTag('cursor', 'Cursor')).toBe(true);
+    expect(providerTagText('cursor').text).toBe('Nuvem');
+    expect(providerTagText('codex').text).toBe('Codex');
+    const accounts = [{ id: 'a', provider: 'claude' as const }, { id: 'b', provider: 'codex' as const }, { id: 'c', provider: 'cursor' as const }, { id: 'd' }];
+    expect(usageCardAccounts(accounts).map((a) => a.id)).toEqual(['a', 'b', 'd']);
+    expect(emptyOfficeHint([{ short: 'C' }, { short: 'R', provider: 'cursor' }])).toBe('Abra o Claude Code em qualquer projeto (atalho c) e veja seu agente chegar.');
   });
 });

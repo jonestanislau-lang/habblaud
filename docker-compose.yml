@@ -39,6 +39,16 @@ services:
       HABBLAUD_LANG: ${HABBLAUD_LANG:-}
       # 0 desliga as sessões do Codex no escritório.
       HABBLAUD_CODEX: ${HABBLAUD_CODEX:-}
+      # Agentes na nuvem do Cursor (só leitura: lista os agentes e as execuções; nunca cria nem manda nada).
+      # A chave fica no ambiente ou no .env (fora do controle de versão), nunca neste arquivo.
+      CURSOR_API_KEY: ${CURSOR_API_KEY:-}
+      HABBLAUD_CURSOR_API_KEY: ${HABBLAUD_CURSOR_API_KEY:-}
+      # 0 desliga os agentes na nuvem do Cursor mesmo com a chave.
+      HABBLAUD_CURSOR_CLOUD: ${HABBLAUD_CURSOR_CLOUD:-}
+      HABBLAUD_CURSOR_CLOUD_POLL_SECONDS: ${HABBLAUD_CURSOR_CLOUD_POLL_SECONDS:-}
+      HABBLAUD_CURSOR_CLOUD_IDLE_HOURS: ${HABBLAUD_CURSOR_CLOUD_IDLE_HOURS:-}
+      HABBLAUD_CURSOR_CLOUD_ROOMS: ${HABBLAUD_CURSOR_CLOUD_ROOMS:-}
+      HABBLAUD_CURSOR_API_URL: ${HABBLAUD_CURSOR_API_URL:-}
       # 1 liga o Novo agente pelo escritório (no Docker, quem começa a sessão é o auxiliar do host, npm run
       # codex:bridge; o terminal interativo em si não roda no container).
       HABBLAUD_PTY: ${HABBLAUD_PTY:-}

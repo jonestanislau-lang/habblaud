@@ -52,6 +52,8 @@ export function isWorldId(id: string): boolean {
 export const WORLD_TOOL_ACCOUNTS: Readonly<Record<Provider, { short: string; name: string; color: string }>> = {
   claude: { short: 'C', name: 'Claude Code', color: '#f08a3c' },
   codex: { short: 'X', name: 'Codex', color: '#a77bf3' },
+  // Nunca vem do mundo (PROVIDERS abaixo só tem claude e codex): entrada só para o Record<Provider> continuar completo.
+  cursor: { short: 'R', name: 'Cursor', color: '#7c8cff' },
 };
 const PROVIDERS: readonly Provider[] = ['claude', 'codex'];
 /** Status que existem no mundo; um que esta versão não conhece vira 'idle' (passeia, sem prometer nada). */

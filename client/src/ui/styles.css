@@ -365,6 +365,14 @@
   --step: 3px;
 }
 
+/* Conta dos agentes na nuvem do Cursor: chip vazado e redondo (nuvem), na cor da conta. */
+.ui-acc-chip[data-provider='cursor'] {
+  border-radius: 999px;
+  background: #161b26;
+  color: var(--acc);
+  box-shadow: inset 0 0 0 2px var(--acc);
+}
+
 /* Selo de texto "Codex" ao lado do nome da conta (fonte do sistema: na Pixelify o "C" parece "O"). */
 .ui-prov {
   display: inline-flex;

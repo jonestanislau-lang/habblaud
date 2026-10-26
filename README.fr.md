@@ -639,6 +639,29 @@ seulement : Codex n'indique pas le coût). La pastille du compte Codex est évid
   personnage peut donc mettre un peu de temps à partir après la fermeture du terminal.
 - Les conversations du cloud de ChatGPT (sans fichier sur l'ordinateur) n'apparaissent pas. `HABBLAUD_CODEX=0` désactive Codex.
 
+### Agents cloud de Cursor
+
+Les [agents cloud de Cursor](https://cursor.com/docs/cloud-agent) (ceux qui tournent sur les machines de Cursor, lancés
+depuis cursor.com/agents, Slack, Linear, GitHub ou l'éditeur) peuvent aussi apparaître dans le bureau. Mettez une clé
+d'API Cursor (**cursor.com › Dashboard › Integrations › User API Keys**) dans `CURSOR_API_KEY` (ou
+`HABBLAUD_CURSOR_API_KEY`) — avec Docker, dans le fichier `.env` à côté de `docker-compose.yml` — et redémarrez Habblaud.
+
+- **Lecture seule.** Habblaud liste vos agents et leurs exécutions (GET) environ toutes les 30 secondes et suit en
+  direct le flux des exécutions en cours ; il ne crée, n'envoie de message, n'annule ni n'archive jamais rien. La clé
+  reste sur le serveur et n'arrive jamais dans la page.
+- **Où ils vont :** chaque agent va dans une salle au nom de son dépôt (`mercadohub` pour
+  `github.com/jonas/mercadohub`). Pour le mettre dans la même salle que vos sessions locales, associez le dépôt au
+  dossier : `HABBLAUD_CURSOR_CLOUD_ROOMS=jonas/mercadohub=/home/jonas/dev/mercadohub` (séparés par des virgules ;
+  `repo=` marche aussi).
+- **Statut :** au travail pendant qu'une exécution est créée ou tourne (avec l'outil utilisé et ce qu'il dit, en
+  direct), au shell pendant qu'il attend un travail en arrière-plan, inactif pendant 2 heures après la fin de
+  l'exécution (`HABBLAUD_CURSOR_CLOUD_IDLE_HOURS`) puis il s'en va ; les agents archivés n'apparaissent pas. Quand
+  l'exécution ouvre une PR, le personnage fait la fête (une fois).
+- **Observation seulement :** la puce du compte est creuse et le personnage porte l'étiquette **CLOUD**. Pas de
+  terminal, d'approbations ni de messages depuis le bureau : les détails ont un lien **Ouvrir dans Cursor** à la place.
+- Cursor autorise environ 20 requêtes par minute : Habblaud lit au plus 8 exécutions par tour, suit au plus 4 flux et
+  attend quand Cursor le demande (429). `HABBLAUD_CURSOR_CLOUD=0` le désactive sans retirer la clé.
+
 ### GitHub dans le bureau
 
 Ce que les agents font sur GitHub anime la salle du projet, sans token et sans accès à Internet : Habblaud lit dans les
@@ -766,6 +789,11 @@ Tout fonctionne sans rien configurer. Si vous avez besoin d'ajuster quelque chos
 | `HABBLAUD_CODEX` | activé | `0` désactive Codex dans le bureau. |
 | `HABBLAUD_CODEX_DIRS` | détection automatique | Dossiers de Codex, séparés par des virgules (à la place de `~/.codex*` et `CODEX_HOME`). |
 | `HABBLAUD_CODEX_BIN` | `codex` du PATH (sous Windows, `codex.exe`) | Le binaire de Codex qui remet les messages (`codex queue`), en mode Node ou dans `npm run codex:bridge`. |
+| `CURSOR_API_KEY` / `HABBLAUD_CURSOR_API_KEY` | — | Clé d'API Cursor : active les [agents cloud de Cursor](#agents-cloud-de-cursor) (lecture seule). |
+| `HABBLAUD_CURSOR_CLOUD` | activé (avec la clé) | `0` désactive les agents cloud de Cursor. |
+| `HABBLAUD_CURSOR_CLOUD_POLL_SECONDS` | `30` | Fréquence de lecture de la liste des agents (minimum 10). |
+| `HABBLAUD_CURSOR_CLOUD_IDLE_HOURS` | `2` | Combien de temps l'agent cloud reste inactif dans le bureau après la fin de l'exécution. |
+| `HABBLAUD_CURSOR_CLOUD_ROOMS` | — | Dépôt → dossier local, séparés par des virgules (ex. : `jonas/mercadohub=/home/jonas/dev/mercadohub`). |
 | `HABBLAUD_UPDATE_CHECK` | activé | `0` désactive la vérification de nouvelle version (une requête aux releases du dépôt sur GitHub toutes les 6 h). |
 | `HABBLAUD_LANG` | langue du système (sauf l'anglais), sinon `pt-BR` | Langue des textes générés par le serveur (activités, alertes, journaux) : `pt-BR`, `en`, `es` ou `fr`. L'interface suit le navigateur ou le choix fait dans Réglages › Langue. Voir [Langues](#langues). |
 | `HABBLAUD_ACCOUNTS` | — | JSON pour personnaliser le nom, la lettre ou la couleur, associé par le nom du dossier du compte. Ex. : `[{"id":".claude-conta2","name":"Trabalho","short":"T","color":"#5cc97b"}]`. |
@@ -773,7 +801,7 @@ Tout fonctionne sans rien configurer. Si vous avez besoin d'ajuster quelque chos
 **Dans Docker**, sont prises en compte `HABBLAUD_PORT`, `HABBLAUD_BIND`, `HABBLAUD_ALLOWED_HOSTS`, `HABBLAUD_DEMO`, `HABBLAUD_TERMINAL`,
 `HABBLAUD_MENSAGENS`, `HABBLAUD_CODEX`, `HABBLAUD_UPDATE_CHECK`, `HABBLAUD_LANG`, `HABBLAUD_PTY`, les `HABBLAUD_WORLD*` et les
 `HABBLAUD_REMOTE_*` (dans le `.env` ou dans l'environnement) ainsi que `HABBLAUD_CLAUDE_DIRS`, `HABBLAUD_CODEX_DIRS`, `HABBLAUD_USAGE_DIR` et
-`HABBLAUD_ACCOUNTS` (lues par `docker:up` sur l'hôte) ; les autres sont fixées à l'intérieur du conteneur. Options : `npm run docker:up -- --no-build` (démarre sans reconstruire),
+`HABBLAUD_ACCOUNTS` (lues par `docker:up` sur l'hôte), ainsi que `CURSOR_API_KEY` et les `HABBLAUD_CURSOR_*` (transmises au conteneur) ; les autres sont fixées à l'intérieur du conteneur. Options : `npm run docker:up -- --no-build` (démarre sans reconstruire),
 `npm run docker:down` (arrête) et `npm run docker:logs` (suit les journaux).
 
 ## Habblaud World

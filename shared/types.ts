@@ -13,9 +13,11 @@ export type AgentKind = 'main' | 'sub';
  * De qual ferramenta vem o agente (ou a conta, a fonte, a sessão, o pedido). Nos tipos do protocolo o campo
  * `provider` é opcional e AUSENTE quer dizer 'claude' (tudo o que existia antes do Codex continua igual).
  * - claude: Claude Code;
- * - codex: OpenAI Codex (CLI `codex` e o app desktop, que gravam no mesmo CODEX_HOME).
+ * - codex: OpenAI Codex (CLI `codex` e o app desktop, que gravam no mesmo CODEX_HOME);
+ * - cursor: agentes na nuvem do Cursor (Cloud Agents), lidos pela API do Cursor; só observação (sem terminal,
+ *   aprovações nem mensagens pelo escritório).
  */
-export type Provider = 'claude' | 'codex';
+export type Provider = 'claude' | 'codex' | 'cursor';
 
 /**
  * Estado de alto nível de um agente — é o que dirige o comportamento do personagem.
@@ -162,6 +164,8 @@ export interface AgentInfo {
   shells?: ShellJob[];
   model?: string;
   gitBranch?: string;
+  /** Página do agente fora do Habblaud (só https): a dos agentes na nuvem do Cursor (cursor.com/agents/...). */
+  url?: string;
   permissionMode?: string;
   startedAt: number;
   lastEventAt: number;

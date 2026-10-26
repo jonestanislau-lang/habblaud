@@ -355,6 +355,31 @@ do Codex levam `provider: 'codex'` (ausente = Claude Code). Ids: `<conta>:<threa
   `/ack` (mesma trava das mensagens). `canMessage` = há entregador (binário achado, ou auxiliar visto há até 10 s).
   Retorno 0 = entrou na fila da sessão (`delivered`); o Codex consome a fila a cada ~10 s, quando a sessão fica ociosa.
 
+## Cursor (agentes na nuvem)
+
+`sources/cursor-cloud/`, ligada quando há `CURSOR_API_KEY` ou `HABBLAUD_CURSOR_API_KEY` (`config.ts`,
+`parseCursorCloudConfig`; `HABBLAUD_CURSOR_CLOUD=0` desliga). Só observação: o cliente (`client.ts`) só faz GET, com
+a chave em Basic auth, e nunca a devolve em erro, log ou snapshot.
+
+- **Leitura** (`source.ts`): `GET /v1/agents?includeArchived=false` (páginas pelo `nextCursor`) a cada
+  `HABBLAUD_CURSOR_CLOUD_POLL_SECONDS` (30 s); `GET /v1/agents/{id}/runs/{latestRunId}` só para a execução nova ou em
+  andamento (no máximo `MAX_RUN_FETCHES` = 8 por rodada; execução encerrada fica em cache). 429 respeita o
+  `Retry-After` (padrão 60 s) e nada é pedido até lá; 401/403 deixam a fonte com erro.
+- **Presença:** conta própria `cursor-cloud` (`provider: 'cursor'`), id `cursor-cloud:<agentId>`. CREATING/RUNNING =
+  trabalhando; WAITING_FOR_BACKGROUND_WORK = `shell`; encerrada = ocioso até `HABBLAUD_CURSOR_CLOUD_IDLE_HOURS` (2 h)
+  depois do `updatedAt` da execução (o do agente pode ser só um "toque"); arquivado ou fora da lista = sai.
+- **Sala:** `/cloud/<host>/<dono>/<repo>` (nome = repo), ou a pasta local de `HABBLAUD_CURSOR_CLOUD_ROOMS`
+  (`dono/repo=/pasta` ou `repo=/pasta`).
+- **Ao vivo:** `GET .../runs/{runId}/stream` (SSE) para no máximo `MAX_STREAMS` = 4 execuções em andamento, retomando
+  pelo `Last-Event-ID`; `tool_call` vira atividade (nomes do Cursor → `Read`/`Edit`/`Bash`/..., `activity.ts`), os
+  deltas de `assistant` são juntados por trecho, `result` encerra. 410/404/429 = segue só com a leitura periódica;
+  stream mudo por 90 s reconecta.
+- **PR:** `git.branches[].prUrl` da execução vira `githubEvent` `pr_opened` (festa só ao vivo, uma vez por PR; PR já
+  existente na primeira olhada vira só histórico).
+- Fica fora do Habblaud World (`shared/world/projection.ts`), dos cartões de uso, do terminal e das mensagens
+  (`client/src/ui/provider.ts`: `supportsLiveTerminal`, `usageCardAccounts`; `composer-model.ts`). Testes com a API
+  falsa em `server/test/cursor-cloud-fake.ts`.
+
 ## Habblaud World
 
 Ligado por padrão, apontando para `server.habblaud.com` (`DEFAULT_WORLD_URL` em `config.ts`); nada sai do computador
@@ -484,6 +509,12 @@ em `shared/world/city.ts` (fonte da verdade; o servidor do mundo guarda a cópia
 | `HABBLAUD_CODEX` | ligado | `0` desliga a fonte do Codex |
 | `HABBLAUD_CODEX_DIRS` | — | pastas do Codex separadas por vírgula; substitui a detecção (`CODEX_HOME` e `~/.codex*`) |
 | `HABBLAUD_CODEX_BIN` | `codex` do PATH | binário do Codex para o `codex queue` (modo Node e `npm run codex:bridge`) |
+| `CURSOR_API_KEY` / `HABBLAUD_CURSOR_API_KEY` | — | chave da API do Cursor: liga a fonte dos agentes na nuvem (só GET) |
+| `HABBLAUD_CURSOR_CLOUD` | ligado (com a chave) | `0` desliga os agentes na nuvem do Cursor |
+| `HABBLAUD_CURSOR_CLOUD_POLL_SECONDS` | `30` | intervalo da lista de agentes (10 a 3600) |
+| `HABBLAUD_CURSOR_CLOUD_IDLE_HOURS` | `2` | quanto tempo o agente fica ocioso depois do fim da execução |
+| `HABBLAUD_CURSOR_CLOUD_ROOMS` | — | repo → pasta local (`dono/repo=/pasta,repo=/pasta`) |
+| `HABBLAUD_CURSOR_API_URL` | `https://api.cursor.com` | base da API (`https://`, ou `http://` só local) |
 | `HABBLAUD_MENSAGENS` | ligado (com o terminal) | `0`, `false`, `off` ou `no` desligam só as mensagens pelo escritório |
 | `HABBLAUD_CLAUDE_DIRS` | — | config dirs separados por vírgula; substitui a detecção (`~/.claude*` com `projects/` ou `sessions/` + `CLAUDE_CONFIG_DIR`) |
 | `HABBLAUD_DATA_DIR` | `~/.habblaud` (Docker: `/data`) | estado do Habblaud (nomes e personagens dos projetos persistidos em `names.json`, linha do tempo em `timeline/`, estatísticas do Meu dia em `stats/`, última verificação de versão em `updates.json`) |

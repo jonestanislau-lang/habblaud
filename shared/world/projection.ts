@@ -18,6 +18,7 @@
 // jogador, e devolve o pacote. O uplink (server/world/uplink.ts) só manda o que sai daqui.
 // - Um andar por sala com pelo menos um agente presente; um agente por principal ou subagente trabalhando, esperando,
 //   à toa ou de olho num shell. Demonstração (`demo:`) nunca entra.
+// - Agentes na nuvem do Cursor (`provider: 'cursor'`) nunca entram: nem agente, nem andar, nem id do mundo.
 // - Ids do mundo vêm de `WorldIdSource` (aleatórios, server/world/ids.ts): nunca o id do escritório, o caminho da
 //   pasta, a conta ou o pid. Andares e agentes saem ordenados pelo id do mundo (a ordem de chegada não vaza).
 // - Nome sorteado do pool (`pickName`) pelo id do mundo, do mesmo look e sem repetir no pacote; o nome do escritório,
@@ -139,6 +140,8 @@ export function projectWithReport(input: ProjectionInput, ids: WorldIdSource, no
   const byRoom = new Map<string, AgentInfo[]>();
   for (const a of input.agents) {
     if (isDemoId(a.id) || isDemoId(a.roomId) || !roomIds.has(a.roomId)) continue;
+    // Cursor (nuvem) fica fora do World: o schema só aceita claude e codex, e nada deles deve sair do computador.
+    if (a.provider === 'cursor') continue;
     if ((a.kind !== 'main' && a.kind !== 'sub') || !isWorldStatus(a.status)) continue;
     const list = byRoom.get(a.roomId);
     if (list) list.push(a);

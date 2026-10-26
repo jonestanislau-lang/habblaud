@@ -608,6 +608,27 @@ Codex account chip is hollow and carries the **CODEX** tag.
   little while to leave after you close the terminal.
 - ChatGPT cloud conversations (with no file on the computer) don't show up. `HABBLAUD_CODEX=0` turns Codex off.
 
+### Cursor cloud agents
+
+Cursor's [cloud agents](https://cursor.com/docs/cloud-agent) (the ones that run on Cursor's machines, started from
+cursor.com/agents, Slack, Linear, GitHub or the editor) can show up in the office too. Set a Cursor API key
+(**cursor.com › Dashboard › Integrations › User API Keys**) in `CURSOR_API_KEY` (or `HABBLAUD_CURSOR_API_KEY`) — in
+Docker, in the `.env` file next to `docker-compose.yml` — and restart Habblaud.
+
+- **Only reads.** Habblaud lists your agents and their runs (GET) about every 30 seconds and follows the live stream of
+  the runs in progress; it never creates, messages, cancels or archives anything. The key stays in the server and never
+  reaches the page.
+- **Where they go:** each agent goes to a room named after its repository (`mercadohub` for
+  `github.com/jonas/mercadohub`). To put it in the same room as your local sessions, map the repository to the folder:
+  `HABBLAUD_CURSOR_CLOUD_ROOMS=jonas/mercadohub=/home/jonas/dev/mercadohub` (comma-separated; `repo=` also works).
+- **Status:** working while a run is creating or running (with the tool it's using and what it says, live), at the
+  shell while it waits for background work, idle for 2 hours after the run ends (`HABBLAUD_CURSOR_CLOUD_IDLE_HOURS`)
+  and then it leaves; archived agents don't show up. When the run opens a PR, the character celebrates (once).
+- **Observe only:** the account chip is hollow and the character carries the **CLOUD** tag. There's no terminal,
+  approvals or messages from the office: the details panel has an **Open in Cursor** link instead.
+- Cursor allows about 20 requests per minute: Habblaud reads at most 8 runs per round, follows at most 4 streams and
+  waits when Cursor asks it to (429). `HABBLAUD_CURSOR_CLOUD=0` turns it off without removing the key.
+
 ### GitHub in the office
 
 What the agents do on GitHub livens up the project's room, with no token and no internet access: Habblaud reads the
@@ -729,6 +750,11 @@ Everything works without configuring anything. If you need to adjust something, 
 | `HABBLAUD_CODEX` | on | `0` turns off Codex in the office. |
 | `HABBLAUD_CODEX_DIRS` | automatic detection | Codex folders, comma-separated (instead of `~/.codex*` and `CODEX_HOME`). |
 | `HABBLAUD_CODEX_BIN` | `codex` from PATH (on Windows, `codex.exe`) | The Codex binary that delivers the messages (`codex queue`), in Node mode or in `npm run codex:bridge`. |
+| `CURSOR_API_KEY` / `HABBLAUD_CURSOR_API_KEY` | — | Cursor API key: turns on [Cursor cloud agents](#cursor-cloud-agents) (read only). |
+| `HABBLAUD_CURSOR_CLOUD` | on (with the key) | `0` turns off Cursor cloud agents. |
+| `HABBLAUD_CURSOR_CLOUD_POLL_SECONDS` | `30` | How often to read the agent list (minimum 10). |
+| `HABBLAUD_CURSOR_CLOUD_IDLE_HOURS` | `2` | How long a cloud agent stays idle in the office after its run ends. |
+| `HABBLAUD_CURSOR_CLOUD_ROOMS` | — | Repository → local folder, comma-separated (e.g. `jonas/mercadohub=/home/jonas/dev/mercadohub`). |
 | `HABBLAUD_UPDATE_CHECK` | on | `0` turns off the new-version check (a request to the repository's releases on GitHub every 6 h). |
 | `HABBLAUD_LANG` | system language (except English), otherwise `pt-BR` | Language of the texts the server builds (activities, notices, logs): `pt-BR`, `en`, `es` or `fr`. The interface follows the browser or the choice in Settings › Language. See [Languages](#languages). |
 | `HABBLAUD_ACCOUNTS` | — | JSON to customize name, letter or color, matched by the account folder name. E.g. `[{"id":".claude-conta2","name":"Trabalho","short":"T","color":"#5cc97b"}]`. |
@@ -736,7 +762,7 @@ Everything works without configuring anything. If you need to adjust something, 
 **In Docker**, `HABBLAUD_PORT`, `HABBLAUD_BIND`, `HABBLAUD_ALLOWED_HOSTS`, `HABBLAUD_DEMO`, `HABBLAUD_TERMINAL`,
 `HABBLAUD_MENSAGENS`, `HABBLAUD_CODEX`, `HABBLAUD_UPDATE_CHECK`, `HABBLAUD_LANG`, `HABBLAUD_PTY`, the `HABBLAUD_WORLD*` and the
 `HABBLAUD_REMOTE_*` apply (in `.env` or in the environment), as do `HABBLAUD_CLAUDE_DIRS`, `HABBLAUD_CODEX_DIRS`, `HABBLAUD_USAGE_DIR` and
-`HABBLAUD_ACCOUNTS` (read by `docker:up` on the host); the rest are fixed inside the container. Options: `npm run docker:up -- --no-build` (starts without rebuilding),
+`HABBLAUD_ACCOUNTS` (read by `docker:up` on the host), plus `CURSOR_API_KEY` and the `HABBLAUD_CURSOR_*` (passed into the container); the rest are fixed inside the container. Options: `npm run docker:up -- --no-build` (starts without rebuilding),
 `npm run docker:down` (stops) and `npm run docker:logs` (follows the logs).
 
 ## Habblaud World

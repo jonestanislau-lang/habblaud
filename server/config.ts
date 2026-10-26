@@ -52,6 +52,10 @@ export interface ServerConfig {
   updateCheck: boolean;
   /** Observa as sessões do Codex (sources/codex/); HABBLAUD_CODEX=0 desliga. */
   codex: boolean;
+  /** Agentes na nuvem do Cursor (sources/cursor-cloud/); ausente = desligado (sem chave ou HABBLAUD_CURSOR_CLOUD=0). */
+  cursorCloud?: CursorCloudConfig;
+  /** Por que os agentes na nuvem do Cursor ficaram desligados com a chave presente (vai para o log ao iniciar). */
+  cursorCloudWarning?: string;
   /** Segunda porta, com login, para o celular na rede local (http/remote.ts); ausente = desligada. */
   remote?: RemoteConfig;
   /** Por que o acesso remoto ficou desligado quando as variáveis estão incompletas. */
@@ -78,6 +82,76 @@ export interface WorldConfig {
   dev: boolean;
   /** Por que HABBLAUD_WORLD_URL foi recusada (vai para o log ao iniciar). */
   warning?: string;
+}
+
+export interface CursorCloudConfig {
+  /** Chave da API do Cursor (CURSOR_API_KEY ou HABBLAUD_CURSOR_API_KEY). Nunca vai para log, snapshot ou disco. */
+  apiKey: string;
+  /** Base da API, sem barra no fim (HABBLAUD_CURSOR_API_URL; padrão https://api.cursor.com). */
+  baseUrl: string;
+  /** Intervalo entre as leituras da lista de agentes (HABBLAUD_CURSOR_CLOUD_POLL_SECONDS; padrão 30 s, mínimo 10 s). */
+  pollMs: number;
+  /** Quanto tempo o agente fica no escritório depois da última execução (HABBLAUD_CURSOR_CLOUD_IDLE_HOURS; padrão 2 h). */
+  idleMs: number;
+  /**
+   * Repositório → pasta local (HABBLAUD_CURSOR_CLOUD_ROOMS="dono/repo=/caminho,repo=/caminho"): o agente na nuvem entra
+   * na mesma sala das sessões locais desse projeto. Chaves em minúsculas ("dono/repo" ou só "repo").
+   */
+  rooms: Record<string, string>;
+}
+
+/** HABBLAUD_CURSOR_CLOUD_ROOMS: "dono/repo=/caminho,repo=/caminho" (entradas sem "=" ou sem caminho absoluto são ignoradas). */
+export function parseCursorRooms(raw: string | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const part of (raw ?? '').split(/[,;\n]/)) {
+    const eq = part.indexOf('=');
+    if (eq <= 0) continue;
+    const key = part.slice(0, eq).trim().toLowerCase();
+    const path = part.slice(eq + 1).trim();
+    if (key && path.startsWith('/')) out[key] = path;
+  }
+  return out;
+}
+
+export const DEFAULT_CURSOR_API_URL = 'https://api.cursor.com';
+
+/**
+ * Agentes na nuvem do Cursor: ligados quando há chave (CURSOR_API_KEY ou HABBLAUD_CURSOR_API_KEY) e
+ * HABBLAUD_CURSOR_CLOUD não os desliga. `warning` diz por que ficaram desligados com a chave presente.
+ */
+export function parseCursorCloudConfig(env: NodeJS.ProcessEnv): { config?: CursorCloudConfig; warning?: string } {
+  const apiKey = (env.HABBLAUD_CURSOR_API_KEY?.trim() || env.CURSOR_API_KEY?.trim()) ?? '';
+  if (!apiKey) return {};
+  const flag = env.HABBLAUD_CURSOR_CLOUD?.trim();
+  if (flag && !isTruthy(flag)) return { warning: 'HABBLAUD_CURSOR_CLOUD desliga os agentes na nuvem do Cursor' };
+  let baseUrl = DEFAULT_CURSOR_API_URL;
+  const raw = env.HABBLAUD_CURSOR_API_URL?.trim();
+  if (raw) {
+    let url: URL | undefined;
+    try {
+      url = new URL(raw);
+    } catch {
+      url = undefined;
+    }
+    const local = !!url && (url.hostname === '127.0.0.1' || url.hostname === 'localhost');
+    if (!url || !(url.protocol === 'https:' || (url.protocol === 'http:' && local))) {
+      return { warning: 'HABBLAUD_CURSOR_API_URL inválida (use https://, ou http:// só para localhost)' };
+    }
+    baseUrl = url.toString().replace(/\/+$/, '');
+  }
+  const num = (v: string | undefined, def: number, min: number, max: number): number => {
+    const n = Number.parseFloat(v?.trim() ?? '');
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def;
+  };
+  return {
+    config: {
+      apiKey,
+      baseUrl,
+      pollMs: Math.round(num(env.HABBLAUD_CURSOR_CLOUD_POLL_SECONDS, 30, 10, 3600) * 1000),
+      idleMs: Math.round(num(env.HABBLAUD_CURSOR_CLOUD_IDLE_HOURS, 2, 0, 24 * 30) * 3_600_000),
+      rooms: parseCursorRooms(env.HABBLAUD_CURSOR_CLOUD_ROOMS),
+    },
+  };
 }
 
 export function isTruthy(v: string | undefined): boolean {
@@ -230,6 +304,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, argv: string[] 
   const host = env.HABBLAUD_HOST?.trim() || '127.0.0.1';
   const pkg = readPackage(rootDir);
   const remote = parseRemoteConfig(env, inDocker);
+  const cursorCloud = parseCursorCloudConfig(env);
   return {
     port: Number.isFinite(port) && port > 0 && port < 65536 ? port : 4747,
     host,
@@ -249,6 +324,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, argv: string[] 
     repo: pkg.repo,
     updateCheck: !env.HABBLAUD_UPDATE_CHECK?.trim() || isTruthy(env.HABBLAUD_UPDATE_CHECK),
     codex: !env.HABBLAUD_CODEX?.trim() || isTruthy(env.HABBLAUD_CODEX),
+    cursorCloud: cursorCloud.config,
+    cursorCloudWarning: cursorCloud.warning,
     remote: remote.config,
     remoteWarning: remote.warning,
     world: parseWorldConfig(env, argv),
