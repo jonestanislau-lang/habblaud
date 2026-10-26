@@ -5,6 +5,7 @@
 import { MESSAGE_MAX } from '../../../shared/messages';
 import type { AgentInfo, OutboxStatus, Provider } from '../../../shared/types';
 import { tr } from '../../../shared/i18n';
+import { looksLikeCursorId } from './provider';
 
 /** Dica para quem tem o recurso ligado, mas a sessão do agente não está com o plugin conectado. */
 export const PLUGIN_HINT = tr('Para mandar mensagens daqui: npm run mod:install (plugin habblaud-mensagens)');
@@ -31,8 +32,11 @@ export function composerMode(agent: AgentInfo | undefined, env: ComposerEnv): Co
   if (env.replaying) return { kind: 'off', text: tr('Sem mensagens no timelapse: o escritório mostrado é o de outro momento') };
   if (agent?.kind === 'sub') return { kind: 'off', text: tr('Subagentes não recebem mensagens: escreva para o agente principal') };
   if (!agent || agent.status === 'offline' || agent.status === 'done') return { kind: 'off', text: tr('Sessão encerrada') };
-  // Agente na nuvem do Cursor: só observação (a conversa é no Cursor).
-  if (agent.provider === 'cursor') return { kind: 'off', text: tr('Agente na nuvem do Cursor: para responder, abra o agente no Cursor') };
+  // Agente do Cursor (na nuvem ou local): só observação (a conversa é no Cursor).
+  if (agent.provider === 'cursor') {
+    if (looksLikeCursorId(agent.account ?? '')) return { kind: 'off', text: tr('Agente na nuvem do Cursor: para responder, abra o agente no Cursor') };
+    return { kind: 'off', text: tr('Agente do Cursor: para responder, use o Cursor') };
+  }
   const codex = agent.provider === 'codex';
   if (!env.enabled) return { kind: 'off', text: codex ? tr('Para responder, use o Codex') : tr('Para responder, use o terminal do Claude Code') };
   if (!env.local) return { kind: 'off', text: tr('Para mandar mensagens por aqui, abra o Habblaud por http://localhost (ou 127.0.0.1)') };

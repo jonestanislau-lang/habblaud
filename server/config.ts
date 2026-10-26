@@ -52,6 +52,8 @@ export interface ServerConfig {
   updateCheck: boolean;
   /** Observa as sessões do Codex (sources/codex/); HABBLAUD_CODEX=0 desliga. */
   codex: boolean;
+  /** Observa as conversas locais do Cursor, editor e cursor-agent (sources/cursor-local/); HABBLAUD_CURSOR=0 desliga. */
+  cursorLocal: boolean;
   /** Agentes na nuvem do Cursor (sources/cursor-cloud/); ausente = desligado (sem chave ou HABBLAUD_CURSOR_CLOUD=0). */
   cursorCloud?: CursorCloudConfig;
   /** Por que os agentes na nuvem do Cursor ficaram desligados com a chave presente (vai para o log ao iniciar). */
@@ -324,6 +326,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, argv: string[] 
     repo: pkg.repo,
     updateCheck: !env.HABBLAUD_UPDATE_CHECK?.trim() || isTruthy(env.HABBLAUD_UPDATE_CHECK),
     codex: !env.HABBLAUD_CODEX?.trim() || isTruthy(env.HABBLAUD_CODEX),
+    cursorLocal: !env.HABBLAUD_CURSOR?.trim() || isTruthy(env.HABBLAUD_CURSOR),
     cursorCloud: cursorCloud.config,
     cursorCloudWarning: cursorCloud.warning,
     remote: remote.config,

@@ -31,12 +31,12 @@ export function createProviderTag(extra = ''): HTMLElement {
   return h('span', { class: `ui-prov${extra ? ` ${extra}` : ''}`, text: 'Codex', hidden: true, title: tr('Agente do Codex (OpenAI)') });
 }
 
-/** Mostra o selo só para o Codex (e não repete quando o nome da conta já diz "Codex") e para o Cursor ("Nuvem"). */
-export function updateProviderTag(tag: HTMLElement, provider: Provider, accountName = ''): void {
-  const show = showsProviderTag(provider, accountName);
+/** Mostra o selo só para o Codex (e não repete quando o nome da conta já diz "Codex") e para o Cursor ("Nuvem" ou "Cursor"). */
+export function updateProviderTag(tag: HTMLElement, provider: Provider, accountName = '', accountId = ''): void {
+  const show = showsProviderTag(provider, accountName, accountId);
   setHidden(tag, !show);
   if (!show) return;
-  const { text, title } = providerTagText(provider);
+  const { text, title } = providerTagText(provider, accountId);
   setText(tag, text);
   setTitle(tag, title);
 }

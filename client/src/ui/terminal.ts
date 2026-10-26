@@ -862,7 +862,7 @@ export class TerminalPanel implements UiComponent, TerminalControl {
     setHidden(this.accEl, true);
     setText(this.nameEl, name);
     setTitle(this.nameEl, '');
-    updateProviderTag(this.provEl, providerOf(a));
+    updateProviderTag(this.provEl, providerOf(a), a ? (this.ctx.account(a.account)?.name ?? '') : '', a?.account);
     setText(this.roleEl, a ? roleLabel(a) : '');
     setHidden(this.roleEl, !a);
     if (a) setVariant(this.roleEl, 'ui-role--', a.kind);
@@ -882,7 +882,7 @@ export class TerminalPanel implements UiComponent, TerminalControl {
     setHidden(this.accEl, false);
     setText(this.nameEl, title);
     setTitle(this.nameEl, title);
-    updateProviderTag(this.provEl, providerOf(s));
+    updateProviderTag(this.provEl, providerOf(s), this.ctx.account(s.account)?.name ?? '', s.account);
     setHidden(this.roleEl, true);
     setText(this.roomEl, `${sessionProjectName(s)} · ${formatDateTime(s.firstAt ?? s.lastAt)}`);
     setTitle(this.roomEl, s.project ?? s.projectDir);

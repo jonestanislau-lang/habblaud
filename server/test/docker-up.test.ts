@@ -13,6 +13,7 @@ import {
   hostTimeZone,
   parseArgs,
   planCodexMounts,
+  planCursorMounts,
   planMounts,
   planUp,
   renderOverride,
@@ -130,6 +131,18 @@ describe('docker-up', () => {
     expect(codexDisabled({ HABBLAUD_CODEX: 'off' })).toBe(true);
     expect(codexDisabled({ HABBLAUD_CODEX: '1' })).toBe(false);
     expect(codexDisabled({})).toBe(false);
+  });
+
+  it('Cursor (local): monta SÓ <pasta>/projects (somente leitura) e passa as pastas do container em HABBLAUD_CURSOR_DIRS', () => {
+    const host = '/mnt/c/Users/jonyy/.cursor';
+    const exists = new Set([`${host}/projects`, `${host}/extensions`, `${host}/cli-config.json`]);
+    const cursor = planCursorMounts([host, '/home/eu/.cursor-vazia'], (p) => (exists.has(slash(p)) ? slash(p) : undefined));
+    expect(cursor).toEqual([{ hostDir: host, mountDir: '/cursor-local/1', binds: [{ source: `${host}/projects`, target: '/cursor-local/1/projects' }] }]);
+    const yml = renderOverride([], new Date(0), undefined, undefined, [], undefined, [], cursor);
+    expect(yml).toContain('HABBLAUD_CURSOR_DIRS: "/cursor-local/1"');
+    expect(yml).toContain(`source: "${host}/projects"\n        target: "/cursor-local/1/projects"\n        read_only: true`);
+    for (const secret of ['extensions', 'cli-config', 'mcp.json']) expect(yml).not.toContain(secret);
+    expect(renderOverride([])).not.toContain('HABBLAUD_CURSOR_DIRS');
   });
 
   it('fuso do host vai para o container como TZ', () => {

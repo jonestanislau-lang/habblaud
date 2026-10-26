@@ -380,6 +380,26 @@ a chave em Basic auth, e nunca a devolve em erro, log ou snapshot.
   (`client/src/ui/provider.ts`: `supportsLiveTerminal`, `usageCardAccounts`; `composer-model.ts`). Testes com a API
   falsa em `server/test/cursor-cloud-fake.ts`.
 
+## Cursor (agentes locais)
+
+`sources/cursor-local/`, ligada quando acha uma pasta do Cursor (`files.ts`, `discoverCursorDirs`:
+`HABBLAUD_CURSOR_DIRS`, senão `CURSOR_CONFIG_DIR`, `~/.cursor` e, no WSL, `/mnt/c/Users/*/.cursor`;
+`HABBLAUD_CURSOR=0` desliga). Só observação: lê, nunca escreve.
+
+- **Formato** (`transcript.ts`): `projects/<slug>/agent-transcripts/<id>/<id>.jsonl` (ou `<id>.jsonl` solto), uma
+  mensagem por linha (`role` user/assistant com `message.content[]` de `text`/`tool_use`, e `{"type":"turn_ended"}`).
+  Sem horários nem resultados de ferramentas. Subagentes (`subagents/`) só são contados (ferramenta `Task`).
+- **Leitura** (`source.ts`): a cada 3 s lista os transcripts; arquivo mexido há menos de 30 min entra (só os últimos
+  512 KB, como histórico); depois lê só o que foi acrescentado. Status: turno aberto e mexido há menos de 10 min =
+  trabalhando; senão ocioso. 30 min parado = sai (`closeMain`).
+- **Conta:** `.cursor` (`provider: 'cursor'`, letra R, grupo `cursor-local` em `setProviderAccounts`, para não apagar
+  a `cursor-cloud`). Id do agente `cursor-local:<id>`.
+- **Sala:** o slug perde acentos e pontuação, então a pasta vem do primeiro caminho absoluto nos argumentos das
+  ferramentas cujo prefixo gera o mesmo slug (`projectDirFromPath`), também procurado nas outras conversas do projeto;
+  `C:\x` vira `/mnt/c/x` e `\\wsl.localhost\<distro>\x` vira `/x` (`localPath`). Sem caminho: `/cursor/<slug>`.
+- **Terminal:** só leitura (`createCursorTerminalParser`), nunca o pty. No Docker, o `docker:up` monta só
+  `<pasta>/projects` em `/cursor-local/<n>/projects` (`planCursorMounts`).
+
 ## Habblaud World
 
 Ligado por padrão, apontando para `server.habblaud.com` (`DEFAULT_WORLD_URL` em `config.ts`); nada sai do computador

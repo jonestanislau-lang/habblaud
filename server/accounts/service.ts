@@ -50,8 +50,8 @@ export class AccountsService {
   readonly usage = new UsageStore();
   /** Contas do Claude Code (config dirs). */
   private list_: AccountEntry[] = [];
-  /** Contas das outras ferramentas, por ferramenta (setProviderAccounts). */
-  private external = new Map<Provider, AccountEntry[]>();
+  /** Contas das outras ferramentas, por grupo (setProviderAccounts; o grupo padrão é a própria ferramenta). */
+  private external = new Map<string, { provider: Provider; entries: AccountEntry[] }>();
   private timer: ReturnType<typeof setInterval> | null = null;
   private statuslineTimer: ReturnType<typeof setInterval> | null = null;
   private readonly statusline: StatuslineUsageReader | null;
@@ -129,9 +129,9 @@ export class AccountsService {
    * na lista) ganha "~2", "~3"... na ordem da lista. Devolve as entradas com os ids finais, na mesma ordem: são
    * eles que vão em AgentInfo.account. Conta que saiu perde o uso guardado.
    */
-  setProviderAccounts(provider: Exclude<Provider, 'claude'>, list: readonly ProviderAccountInput[]): readonly AccountEntry[] {
+  setProviderAccounts(provider: Exclude<Provider, 'claude'>, list: readonly ProviderAccountInput[], group: string = provider): readonly AccountEntry[] {
     const taken = new Set(this.list_.map((e) => e.id));
-    for (const [p, entries] of this.external) if (p !== provider) for (const e of entries) taken.add(e.id);
+    for (const [g, ext] of this.external) if (g !== group) for (const e of ext.entries) taken.add(e.id);
     const next = list.map((input): AccountEntry => {
       const base = input.detected.id || basename(input.dir) || input.dir;
       let id = base;
@@ -139,11 +139,11 @@ export class AccountsService {
       taken.add(id);
       return { id, provider, dir: input.dir, detected: { ...input.detected, id, provider } };
     });
-    const prev = this.external.get(provider) ?? [];
+    const prev = this.external.get(group)?.entries ?? [];
     let changed = JSON.stringify(prev) !== JSON.stringify(next);
     for (const e of prev) if (!next.some((n) => n.id === e.id)) changed = this.usage.forget(e.id) || changed;
-    if (next.length) this.external.set(provider, next);
-    else this.external.delete(provider);
+    if (next.length) this.external.set(group, { provider, entries: next });
+    else this.external.delete(group);
     if (this.usageViewChanged()) changed = true;
     if (changed) this.opts.onChange();
     return next;
@@ -201,13 +201,14 @@ export class AccountsService {
 
   /** Contas de uma ferramenta. */
   entriesOf(provider: Provider): readonly AccountEntry[] {
-    return provider === 'claude' ? this.list_ : (this.external.get(provider) ?? []);
+    if (provider === 'claude') return this.list_;
+    return [...this.external.values()].filter((e) => e.provider === provider).flatMap((e) => e.entries);
   }
 
   /** Contas de todas as ferramentas: as do Claude Code primeiro. */
   allEntries(): readonly AccountEntry[] {
     if (!this.external.size) return this.list_;
-    return [...this.list_, ...[...this.external.values()].flat()];
+    return [...this.list_, ...[...this.external.values()].flatMap((e) => e.entries)];
   }
 
   idForDir(dir: string): string | undefined {

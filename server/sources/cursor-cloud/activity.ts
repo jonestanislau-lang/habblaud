@@ -55,9 +55,8 @@ export function cursorToolName(name: string): string {
   return TOOL_NAMES[name.toLowerCase().replace(/[\s_-]+/g, '')] ?? name;
 }
 
-/** Descrição da chamada `name` (nome bruto do Cursor) com os argumentos `args`; `tool` é o nome normalizado. */
-export function describeCursorTool(name: string, args: unknown): { desc: ActivityDescription; tool: string } {
-  const tool = cursorToolName(name);
+/** Argumentos de uma ferramenta do Cursor com os nomes do Claude Code (file_path, pattern, query, command). */
+export function normalizeCursorInput(args: unknown): Record<string, unknown> {
   const input = (args && typeof args === 'object' ? args : {}) as Record<string, unknown>;
   // O Cursor chama o arquivo de target_file / targetFile / path; o comando de command; a busca de query.
   const file = str(input.file_path) ?? str(input.target_file) ?? str(input.targetFile) ?? str(input.filePath) ?? str(input.path);
@@ -69,5 +68,11 @@ export function describeCursorTool(name: string, args: unknown): { desc: Activit
   }
   if (normalized.query === undefined && str(input.search_term)) normalized.query = input.search_term;
   if (normalized.command === undefined && str(input.cmd)) normalized.command = input.cmd;
-  return { desc: describeTool(tool, normalized), tool };
+  return normalized;
+}
+
+/** Descrição da chamada `name` (nome bruto do Cursor) com os argumentos `args`; `tool` é o nome normalizado. */
+export function describeCursorTool(name: string, args: unknown): { desc: ActivityDescription; tool: string } {
+  const tool = cursorToolName(name);
+  return { desc: describeTool(tool, normalizeCursorInput(args)), tool };
 }

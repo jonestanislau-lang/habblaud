@@ -663,6 +663,25 @@ de la API de Cursor (**cursor.com › Dashboard › Integrations › User API Ke
 - Cursor permite unas 20 solicitudes por minuto: Habblaud lee como máximo 8 ejecuciones por ronda, sigue como máximo 4
   streams y espera cuando Cursor lo pide (429). `HABBLAUD_CURSOR_CLOUD=0` lo desactiva sin quitar la clave.
 
+### Agentes locales de Cursor
+
+Las conversaciones del agente del editor Cursor y de la CLI `cursor-agent` en tu equipo también aparecen, sin
+configurar nada: Habblaud lee `~/.cursor/projects/*/agent-transcripts/` (solo lectura; nunca escribe en la carpeta de
+Cursor).
+
+- **Windows + WSL/Docker:** con Habblaud en WSL (o en Docker sobre WSL), también encuentra `C:\Users\<tú>\.cursor`
+  por `/mnt/c/Users/<tú>/.cursor`. En otros casos, indica la carpeta con
+  `HABBLAUD_CURSOR_DIRS=/mnt/c/Users/jonyy/.cursor` (separadas por comas). `npm run docker:up` monta **solo** su
+  carpeta `projects/`, en solo lectura — nunca extensiones, ajustes ni claves.
+- **Dónde quedan:** en la sala de la carpeta abierta en Cursor (sacada de las rutas de los archivos que tocó el agente),
+  junto a las sesiones de Claude Code y Codex del mismo proyecto.
+- **Estado:** trabajando mientras se escribe la respuesta (el archivo de la conversación cambia y el turno no terminó),
+  inactivo cuando termina o tras 10 minutos sin cambios, y se va tras 30 minutos. Cursor no guarda horas ni resultados
+  de las herramientas en ese archivo, así que las horas mostradas son las del último cambio.
+- **Solo observación:** el personaje lleva la cuenta **Cursor** (letra R); el terminal muestra la conversación (solo
+  lectura); los mensajes y aprobaciones siguen en Cursor. Los subagentes se cuentan, no se vuelven personajes.
+  `HABBLAUD_CURSOR=0` lo desactiva.
+
 ### GitHub en la oficina
 
 Lo que los agentes hacen en GitHub anima la sala del proyecto, sin token y sin acceder a internet: Habblaud lee en
@@ -791,6 +810,8 @@ Todo funciona sin configurar nada. Si necesitas ajustar algo, usa variables de e
 | `HABBLAUD_CURSOR_CLOUD_POLL_SECONDS` | `30` | Cada cuánto lee la lista de agentes (mínimo 10). |
 | `HABBLAUD_CURSOR_CLOUD_IDLE_HOURS` | `2` | Cuánto tiempo el agente en la nube queda inactivo en la oficina después de que termina la ejecución. |
 | `HABBLAUD_CURSOR_CLOUD_ROOMS` | — | Repositorio → carpeta local, separados por comas (p. ej. `jonas/mercadohub=/home/jonas/dev/mercadohub`). |
+| `HABBLAUD_CURSOR` | activado | `0` desactiva los [agentes locales de Cursor](#agentes-locales-de-cursor). |
+| `HABBLAUD_CURSOR_DIRS` | `~/.cursor` (+ `C:\Users\*\.cursor` en WSL) | Carpetas de Cursor, separadas por comas (p. ej. `/mnt/c/Users/jonyy/.cursor`). |
 | `HABBLAUD_UPDATE_CHECK` | activada | `0` desactiva la comprobación de versión nueva (una consulta a las releases del repositorio en GitHub cada 6 h). |
 | `HABBLAUD_LANG` | idioma del sistema (salvo inglés); si no, `pt-BR` | Idioma de los textos que arma el servidor (actividades, avisos, logs): `pt-BR`, `en`, `es` o `fr`. La interfaz sigue al navegador o la elección en Configuración › Idioma. Consulta [Idiomas](#idiomas). |
 | `HABBLAUD_ACCOUNTS` | — | JSON para personalizar el nombre, la letra o el color, emparejado por el nombre de la carpeta de la cuenta. P. ej.: `[{"id":".claude-conta2","name":"Trabalho","short":"T","color":"#5cc97b"}]`. |
