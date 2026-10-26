@@ -123,6 +123,20 @@ describe('fonte do Cursor (nuvem): presença', () => {
     expect(t.source.sources()[0]).toMatchObject({ provider: 'cursor', sessions: 2, ok: true });
   });
 
+  it('execução presa em CREATING com o agente IDLE não fica trabalhando para sempre', async () => {
+    const t = setup({ config: { idleMs: 30 * 24 * HOUR } });
+    t.api.agents = [fakeAgent('bc-stuck', { status: 'IDLE', updatedAt: iso(T0 - 60_000) })];
+    t.api.runs.set('run-bc-stuck', fakeRun('run-bc-stuck', { status: 'CREATING', createdAt: iso(T0 - 13 * 24 * HOUR), updatedAt: iso(T0 - 13 * 24 * HOUR) }));
+    await t.boot();
+    const a = t.agent('bc-stuck');
+    expect(a?.status).toBe('idle');
+    // A execução não é relida a cada rodada.
+    const before = t.api.requests.filter((r) => r.path.includes('/runs/')).length;
+    t.advance(30_000);
+    await t.poll();
+    expect(t.api.requests.filter((r) => r.path.includes('/runs/')).length).toBe(before);
+  });
+
   it('só faz GET, com a chave só no Authorization (Basic) e sem pedir arquivados', async () => {
     const t = setup();
     t.api.agents = [fakeAgent('bc-1', { status: 'ACTIVE', updatedAt: iso(T0) })];

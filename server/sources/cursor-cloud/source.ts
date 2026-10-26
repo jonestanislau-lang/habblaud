@@ -101,6 +101,14 @@ export function isActiveRun(run: CursorRun | undefined): boolean {
   return !!run?.status && ACTIVE_RUN.has(run.status);
 }
 
+/**
+ * Execução rodando de verdade: o status dela é de trabalho e o agente não está IDLE na lista. Uma execução presa em
+ * CREATING (ou RUNNING) com o agente já IDLE é resto antigo da API e não pode deixar o personagem trabalhando para sempre.
+ */
+export function isRunningNow(agent: CursorAgent | undefined, run: CursorRun | undefined): boolean {
+  return isActiveRun(run) && agent?.status !== 'IDLE';
+}
+
 /** `https://github.com/dono/repo(.git)` ou `github.com/dono/repo` → { host, owner, repo }. */
 export function parseRepoUrl(raw: string | undefined): { host: string; owner: string; repo: string } | undefined {
   if (!raw) return undefined;
@@ -271,7 +279,7 @@ export class CursorCloudSource implements AgentSource {
 
     // 3) Execuções: as que precisam (sem stream ao vivo), ativos primeiro, até MAX_RUN_FETCHES por rodada.
     const need = wanted
-      .filter((t) => !!t.agent.latestRunId && (t.stale || t.run?.id !== t.agent.latestRunId || (isActiveRun(t.run) && !t.stream)))
+      .filter((t) => !!t.agent.latestRunId && (t.stale || t.run?.id !== t.agent.latestRunId || (isRunningNow(t.agent, t.run) && !t.stream)))
       .sort((x, y) => Number(y.agent.status === 'ACTIVE') - Number(x.agent.status === 'ACTIVE') || (ms(y.agent.updatedAt) ?? 0) - (ms(x.agent.updatedAt) ?? 0))
       .slice(0, MAX_RUN_FETCHES);
     for (const t of need) {
@@ -299,7 +307,7 @@ export class CursorCloudSource implements AgentSource {
     const run = t.run;
     if (!run) return;
     const now = this.now();
-    const active = isActiveRun(run);
+    const active = isRunningNow(t.agent, run);
     const lastAt = ms(run.updatedAt) ?? ms(t.agent.updatedAt) ?? now;
     const present = active || now - lastAt < this.timing.idleMs;
     if (!present) {
@@ -359,6 +367,8 @@ export class CursorCloudSource implements AgentSource {
     office.setStatus(t.key, 'idle');
     if (t.doneRuns.has(run.id)) return;
     t.doneRuns.add(run.id);
+    // Execução presa (status de trabalho com o agente IDLE): fica ociosa, sem inventar um fim no histórico.
+    if (isActiveRun(run)) return;
     const at = wasWorking ? this.now() : (ms(run.updatedAt) ?? this.now());
     const took = run.durationMs;
     const base = { id: `${t.key}#end:${run.id}`, at, kind: 'done' as const };
