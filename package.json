@@ -6,9 +6,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/marmottajr/habblaud.git"
+    "url": "git+https://github.com/jonestanislau-lang/habblaud.git"
   },
-  "homepage": "https://github.com/marmottajr/habblaud#readme",
+  "homepage": "https://github.com/jonestanislau-lang/habblaud#readme",
   "type": "module",
   "engines": {
     "node": ">=22.12"
