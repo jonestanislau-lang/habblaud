@@ -22,7 +22,7 @@ import { HistoryPopover } from './history';
 import { Deliveries } from './deliveries';
 import { HoverTip } from './hovertip';
 import { hasRunningShells } from './model';
-import { hasCodexPermission } from './provider';
+import { hasCodexPermission, providerOf, supportsLiveTerminal } from './provider';
 import { Notifier } from './notify';
 import { ConnectionBanner, EmptyState, Splash } from './overlays';
 import { focusPermission, nextPermissionAgent } from './permission';
@@ -47,6 +47,9 @@ import { SceneSwitch, type CitySceneHost } from './world/scene-switch';
 import { worldSource } from '../net/world';
 import { FreeArea } from './viewport';
 import { tr } from '../../../shared/i18n';
+
+/** Agente na nuvem do Cursor: sem terminal pelo escritório. */
+const CURSOR_NO_TERMINAL = tr('Agente na nuvem do Cursor: sem terminal por aqui (só observação). Abra o agente no Cursor.');
 
 /** Relógio dos tempos relativos ("há 5 s"). */
 const CLOCK_MS = 5_000;
@@ -196,6 +199,9 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
     },
     newSession: (cwd, account) => pty.newSession(cwd, account),
     open(id, opener) {
+      // Agente na nuvem do Cursor: não há terminal (só observação).
+      const agent = ctx.agent(id);
+      if (agent && !supportsLiveTerminal(providerOf(agent))) return ctx.announce(CURSOR_NO_TERMINAL);
       const readOnly = !!store.snapshot?.meta.terminal && !store.replaying;
       if (pty.ptyOf(id) || (pty.enabled && !readOnly && ctx.agent(id)?.kind === 'main')) pty.openAgent(id);
       else {
@@ -471,6 +477,8 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
    */
   function toggleTerminal(): void {
     const id = selection?.type === 'agent' ? selection.id : null;
+    const sel = id !== null ? ctx.agent(id) : undefined;
+    if (sel && !supportsLiveTerminal(providerOf(sel)) && !terminal.isOpen && !pty.isOpen) return ctx.announce(CURSOR_NO_TERMINAL);
     if (id !== null && pty.enabled && ctx.agent(id)?.kind === 'main') return router.toggle(id);
     if (id === null && pty.isOpen) return pty.close();
     if (terminal.isOpen && (id === null || terminal.agentId === id)) terminal.close();

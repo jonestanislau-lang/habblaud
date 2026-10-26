@@ -111,6 +111,15 @@ describe('caixa de mensagem (peças puras)', () => {
     expect(composerMode(codex({ status: 'offline' }), ON)).toEqual({ kind: 'off', text: 'Sessão encerrada' });
   });
 
+  it('Cursor (nuvem): só observação, nunca recebe mensagem pelo escritório', () => {
+    const cursor = (over: Partial<AgentInfo> = {}) => agent({ provider: 'cursor', ...over });
+    const off = { kind: 'off', text: 'Agente na nuvem do Cursor: para responder, abra o agente no Cursor' };
+    expect(composerMode(cursor(), ON)).toEqual(off);
+    expect(composerMode(cursor({ canMessage: true }), ON)).toEqual(off);
+    expect(composerMode(cursor({ status: 'idle' }), { ...ON, enabled: false })).toEqual(off);
+    expect(composerMode(cursor({ status: 'offline' }), ON)).toEqual({ kind: 'off', text: 'Sessão encerrada' });
+  });
+
   it('Codex: "Entregue" é a fila da sessão; dica e prazo falam do Codex', () => {
     expect(sendStatusText({ phase: 'delivered', at: 0 }, 1_000, 'codex')).toBe('Entregue ✓ na fila da sessão: entra quando o Codex terminar o que está fazendo (até ~10 s)');
     expect(sendStatusText({ phase: 'delivered', at: 0 }, DELIVERED_SHOW_MS, 'codex')).toBe('');

@@ -10,6 +10,14 @@ do meio (0.**3**.0).
 
 ## [Não lançado]
 
+### Adicionado
+
+- **Agentes na nuvem do Cursor no escritório.** Com uma chave da API do Cursor em `CURSOR_API_KEY`, os agentes na
+  nuvem da conta entram como personagens na sala do repositório: trabalhando enquanto a execução roda (com a
+  ferramenta e o que dizem, ao vivo), ociosos por 2 horas depois que ela termina e com festa quando abrem um PR. Só
+  observação: o Habblaud só lê (nunca cria, manda mensagem nem cancela), e os detalhes têm o link **Abrir no Cursor**.
+  `HABBLAUD_CURSOR_CLOUD=0` desliga.
+
 ## [1.0.3] - 2026-10-16
 
 ### Corrigido

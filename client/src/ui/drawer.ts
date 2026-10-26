@@ -41,7 +41,7 @@ import {
 import { access } from '../net/access';
 import { PermissionCard } from './permission';
 import { canRenameRoom } from './roomrename';
-import { accountChipLabel, accountProvider, CODEX_LIVE_HINT, codexApprovalLabel, providerOf } from './provider';
+import { accountChipLabel, accountProvider, CODEX_LIVE_HINT, codexApprovalLabel, providerOf, supportsLiveTerminal } from './provider';
 import { ptyControllable } from './ptyapi';
 import { createAgentRow, updateAgentRow } from './rows';
 import { SocialSection } from './social';
@@ -218,6 +218,8 @@ class AgentView {
   private termLabel: HTMLElement;
   /** Por que o terminal não abre: no celular não há hover para ler o title, então o toque mostra o motivo aqui. */
   private termWhy: HTMLElement;
+  /** Agente na nuvem do Cursor: link para a página dele no Cursor (no lugar do terminal, que não há). */
+  private cloudLink: HTMLAnchorElement;
   private termWhyTimer: ReturnType<typeof setTimeout> | null = null;
   private alert: HTMLElement;
   private alertText: HTMLElement;
@@ -320,6 +322,13 @@ class AgentView {
     );
 
     this.termWhy = h('p', { class: 'ui-term-cta__why', hidden: true, attrs: { role: 'status' } });
+    this.cloudLink = h('a', {
+      class: 'ui-btn ui-term-cta ui-cloud-link',
+      hidden: true,
+      text: tr('Abrir no Cursor'),
+      title: tr('Agente na nuvem do Cursor: só observação por aqui. Para responder, abra no Cursor.'),
+      attrs: { target: '_blank', rel: 'noopener noreferrer' },
+    });
 
     this.alertText = h('p', { class: 'ui-alert__text' });
     this.alertQuestions = h('div', { class: 'ui-ask', hidden: true });
@@ -412,6 +421,7 @@ class AgentView {
       this.gone,
       statusRow,
       this.termBtn,
+      this.cloudLink,
       this.termWhy,
       this.alert,
       this.perm.el,
@@ -566,6 +576,9 @@ class AgentView {
     setAttr(this.followBtn, 'aria-pressed', String(following));
     this.followBtn.classList.toggle('is-on', following);
     this.renderTerminalButton(!!live);
+    const cloudUrl = a.provider === 'cursor' && a.url && /^https:\/\//i.test(a.url) ? a.url : null;
+    setHidden(this.cloudLink, !cloudUrl);
+    setAttr(this.cloudLink, 'href', cloudUrl);
 
     // Alerta.
     const waiting = a.status === 'waiting' && !!live;
@@ -699,7 +712,12 @@ class AgentView {
     const kind = !this.id ? '' : router?.interactive(this.id) ? 'interativo' : !readOnly && this.pty.enabled && ptyControllable(this.last) ? 'em outro terminal' : 'ao vivo';
     setText(this.termRo, kind === 'interativo' ? tr('interativo') : kind === 'ao vivo' ? tr('ao vivo') : kind ? tr('em outro terminal') : '');
     // aria-disabled (e não disabled): o botão continua focável e a dica do porquê aparece no hover.
-    const enabled = open || (available && live);
+    // Agente na nuvem do Cursor: sem terminal (roda na nuvem; a conversa é no Cursor). O botão some; o link "Abrir no
+    // Cursor" (cloudLink) fica no lugar.
+    const noTerm = !supportsLiveTerminal(provider);
+    setHidden(this.termBtn, noTerm && !open);
+    if (noTerm) setHidden(this.termWhy, true);
+    const enabled = open || (available && live && !noTerm);
     if (enabled) setHidden(this.termWhy, true);
     setAttr(this.termBtn, 'aria-disabled', enabled ? null : 'true');
     this.termBtn.classList.toggle('is-disabled', !enabled);

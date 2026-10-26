@@ -107,6 +107,8 @@ export interface MainInput {
   startedAt: number;
   status: AgentStatus;
   waitingFor?: string;
+  /** Página do agente fora do Habblaud (AgentInfo.url; ex.: agente na nuvem do Cursor). Só https. */
+  url?: string;
 }
 
 export interface SubInput {
@@ -347,6 +349,7 @@ export class Office {
       seed: chosen?.seed ?? hash32(p.id),
     };
     if (p.provider && p.provider !== 'claude') info.provider = p.provider;
+    if (p.url && /^https:\/\//i.test(p.url)) info.url = p.url;
     if (chosen) {
       info.custom = true;
       if (chosen.parts) info.parts = { ...chosen.parts };

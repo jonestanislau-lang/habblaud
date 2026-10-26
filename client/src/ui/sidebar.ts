@@ -12,6 +12,7 @@ import { officeIsEmpty } from './overlays';
 import { createAgentRow, updateAgentRow } from './rows';
 import { createAccountChip, createProgress, updateAccountChip, updateProgress } from './widgets';
 import { tr } from '../../../shared/i18n';
+import { providerOf, supportsLiveTerminal } from './provider';
 
 interface RoomRefs {
   head: HTMLButtonElement;
@@ -391,7 +392,8 @@ export class Sidebar implements UiComponent {
     r.head.dataset.room = n.agent.roomId;
     const router = this.ctx.terminals;
     const a = n.agent;
-    const canTerm = !!router?.available && a.status !== 'offline';
+    // Agente na nuvem do Cursor: sem terminal (só observação).
+    const canTerm = !!router?.available && a.status !== 'offline' && supportsLiveTerminal(providerOf(a));
     setHidden(r.term, !canTerm);
     if (canTerm && router) {
       const open = router.openAgentId === a.id;

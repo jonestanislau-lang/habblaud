@@ -12,7 +12,7 @@ import type { UiContext } from './context';
 import { h, KeyedList, setAttr, setHidden, setStyleVar, setText, setTitle, setVariant } from './dom';
 import { FIVE_HOURS_MS, relativeTime, usageLevel, usageWindowView, WEEK_MS, type UsageWindowView } from './format';
 import { ICONS } from './icons';
-import { isCodex } from './provider';
+import { isCodex, usageCardAccounts } from './provider';
 import { usageRowFits } from './usage-row';
 import { createAccountChip, createProviderTag, updateAccountChip, updateProviderTag } from './widgets';
 import { tr } from '../../../shared/i18n';
@@ -218,7 +218,7 @@ export class UsageCards {
   }
 
   render(): void {
-    const accounts = this.ctx.store.snapshot?.accounts ?? [];
+    const accounts = usageCardAccounts(this.ctx.store.snapshot?.accounts ?? []);
     this.list.sync(accounts);
     this.el.classList.toggle('is-empty', accounts.length === 0);
     setStyleVar(this.el, '--count', String(accounts.length));

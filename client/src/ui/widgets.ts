@@ -4,7 +4,7 @@ import type { AccountInfo, Activity, AgentInfo, AgentStatus, Provider } from '..
 import { h, setAttr, setHidden, setStyleVar, setText, setTitle, setVariant } from './dom';
 import { WORDMARK } from './icons';
 import { shellDoneKind, shellLine, shellStage, statusLabel, type ShellWait } from './model';
-import { accountChipLabel, accountProvider, fallbackShort, showsProviderTag } from './provider';
+import { accountChipLabel, accountProvider, fallbackShort, providerTagText, showsProviderTag } from './provider';
 import { tr } from '../../../shared/i18n';
 
 /**
@@ -20,7 +20,7 @@ export function updateAccountChip(chip: HTMLElement, account: AccountInfo | unde
   const p = accountProvider(account, fallbackId, provider);
   setText(chip, account?.short ?? fallbackShort(fallbackId, p));
   setStyleVar(chip, '--acc', account?.color ?? '#8b98b3');
-  setAttr(chip, 'data-provider', p === 'codex' ? 'codex' : null);
+  setAttr(chip, 'data-provider', p === 'codex' || p === 'cursor' ? p : null);
   const label = accountChipLabel(account, fallbackId, p);
   setTitle(chip, label);
   setAttr(chip, 'aria-label', label);
@@ -31,9 +31,14 @@ export function createProviderTag(extra = ''): HTMLElement {
   return h('span', { class: `ui-prov${extra ? ` ${extra}` : ''}`, text: 'Codex', hidden: true, title: tr('Agente do Codex (OpenAI)') });
 }
 
-/** Mostra o selo só para o Codex (e não repete quando o nome da conta já diz "Codex"). */
+/** Mostra o selo só para o Codex (e não repete quando o nome da conta já diz "Codex") e para o Cursor ("Nuvem"). */
 export function updateProviderTag(tag: HTMLElement, provider: Provider, accountName = ''): void {
-  setHidden(tag, !showsProviderTag(provider, accountName));
+  const show = showsProviderTag(provider, accountName);
+  setHidden(tag, !show);
+  if (!show) return;
+  const { text, title } = providerTagText(provider);
+  setText(tag, text);
+  setTitle(tag, title);
 }
 
 /** Quadradinho de status (pixel), com pulso quando precisa de você. */

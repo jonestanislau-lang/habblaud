@@ -8,7 +8,7 @@ import { shortcutHint } from './model';
 import { tr } from '../../../shared/i18n';
 
 /** Nome de cada ferramenta como aparece nos textos. */
-export const PROVIDER_NAME: Record<Provider, string> = { claude: 'Claude Code', codex: 'Codex' };
+export const PROVIDER_NAME: Record<Provider, string> = { claude: 'Claude Code', codex: 'Codex', cursor: 'Cursor' };
 
 /** Ferramenta de um agente, conta, sessão ou pedido (ausente = Claude Code). */
 export function providerOf(x: { provider?: Provider } | null | undefined): Provider {
@@ -17,6 +17,21 @@ export function providerOf(x: { provider?: Provider } | null | undefined): Provi
 
 export function isCodex(x: { provider?: Provider } | null | undefined): boolean {
   return x?.provider === 'codex';
+}
+
+/** Agente (ou conta) na nuvem do Cursor: só observação, sem terminal, aprovações nem mensagens pelo escritório. */
+export function isCursor(x: { provider?: Provider } | null | undefined): boolean {
+  return x?.provider === 'cursor';
+}
+
+/** A ferramenta tem terminal ao vivo pelo escritório? Os agentes na nuvem do Cursor não (rodam na nuvem, sem conversa local). */
+export function supportsLiveTerminal(provider: Provider): boolean {
+  return provider !== 'cursor';
+}
+
+/** Id da conta dos agentes na nuvem do Cursor ("cursor-cloud", "cursor-cloud~2", "demo:cursor-cloud")? */
+export function looksLikeCursorId(id: string): boolean {
+  return /(?:^|[:/\\])cursor-cloud(?:~\d+)?$/i.test(id);
 }
 
 /**
@@ -30,7 +45,7 @@ export function looksLikeCodexId(id: string): boolean {
 /** Ferramenta da conta: a do snapshot; sem ela, a dica de quem chamou ou o jeito do id. */
 export function accountProvider(account: Pick<AccountInfo, 'provider'> | undefined, fallbackId = '', hint?: Provider): Provider {
   if (account) return providerOf(account);
-  return hint ?? (looksLikeCodexId(fallbackId) ? 'codex' : 'claude');
+  return hint ?? (looksLikeCodexId(fallbackId) ? 'codex' : looksLikeCursorId(fallbackId) ? 'cursor' : 'claude');
 }
 
 /**
@@ -39,6 +54,7 @@ export function accountProvider(account: Pick<AccountInfo, 'provider'> | undefin
  * "?" (como antes). Nunca devolve "." nem vazio.
  */
 export function fallbackShort(id: string, provider: Provider = accountProvider(undefined, id)): string {
+  if (provider === 'cursor') return 'R';
   const rest = id
     .replace(/^.*:/, '')
     .replace(/~\d+$/, '')
@@ -48,9 +64,16 @@ export function fallbackShort(id: string, provider: Provider = accountProvider(u
   return provider === 'codex' ? 'X' : '?';
 }
 
-/** O selo "Codex" ao lado do nome da conta (não repete quando o nome já diz "Codex"). */
+/** O selo "Codex" ao lado do nome da conta (não repete quando o nome já diz "Codex"); o "Nuvem" dos agentes do Cursor sempre. */
 export function showsProviderTag(provider: Provider, accountName = ''): boolean {
+  if (provider === 'cursor') return true;
   return provider === 'codex' && !/codex/i.test(accountName);
+}
+
+/** Texto e dica do selo de uma ferramenta (o do Codex diz "Codex"; o do Cursor diz que o agente roda na nuvem). */
+export function providerTagText(provider: Provider): { text: string; title: string } {
+  if (provider === 'cursor') return { text: tr('Nuvem'), title: tr('Agente na nuvem do Cursor (só observação)') };
+  return { text: 'Codex', title: tr('Agente do Codex (OpenAI)') };
 }
 
 /** Rótulo do chip da conta (dica e leitores de tela): "Conta C (dev@x.com)", "Codex · plano Team". */
@@ -61,12 +84,18 @@ export function accountChipLabel(account: Pick<AccountInfo, 'name' | 'email' | '
   return `${account.name}${tag}${account.plan ? tr(' · plano {0}', [account.plan]) : ''}`;
 }
 
+/** Contas com cartão de uso. A dos agentes na nuvem do Cursor fica de fora: não há uso de plano que o Habblaud leia (e o cartão ofereceria o "Como ativar" do mod). */
+export function usageCardAccounts<T extends Pick<AccountInfo, 'provider'>>(accounts: readonly T[]): T[] {
+  return accounts.filter((a) => a.provider !== 'cursor');
+}
+
 /**
  * Texto do escritório vazio. Os atalhos ("atalhos c ou d") são só das contas do Claude Code, que vêm de aliases do
  * shell (a letra de uma conta do Codex não é um atalho); o Codex só entra quando há uma conta dele.
  */
 export function emptyOfficeHint(accounts: readonly Pick<AccountInfo, 'short' | 'provider'>[]): string {
-  const keys = shortcutHint(accounts.filter((a) => !isCodex(a)));
+  // A conta dos agentes na nuvem do Cursor também não tem atalho.
+  const keys = shortcutHint(accounts.filter((a) => !isCodex(a) && !isCursor(a)));
   if (!accounts.some(isCodex)) return tr('Abra o Claude Code em qualquer projeto{0} e veja seu agente chegar.', [keys ? ` (${keys})` : '']);
   return tr('Abra o Claude Code{0} ou o Codex em qualquer projeto e veja seu agente chegar.', [keys ? ` (${keys})` : '']);
 }

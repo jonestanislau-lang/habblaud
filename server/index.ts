@@ -37,6 +37,7 @@ import { ClaudeWatcher } from './sources/watcher';
 import { discoverCodexDirs } from './sources/codex/accounts';
 import { CodexHistory } from './sources/codex/history';
 import { CodexSource } from './sources/codex/source';
+import { CursorCloudSource } from './sources/cursor-cloud/source';
 import { createBuildReader, readBuildInfo } from './build';
 import { UpdateChecker } from './updates/checker';
 import { getLocale, tr } from '../shared/i18n';
@@ -138,6 +139,10 @@ const agents = new SourceSet([claude]);
 const codexDirs = config.codex ? discoverCodexDirs(process.env, config.home) : [];
 const codex = codexDirs.length ? new CodexSource({ accounts, office, dirs: codexDirs, env: process.env, home: config.home }) : undefined;
 if (codex) agents.add(codex);
+// Agentes na nuvem do Cursor (sources/cursor-cloud/): ligados com CURSOR_API_KEY (ou HABBLAUD_CURSOR_API_KEY); só
+// observação. HABBLAUD_CURSOR_CLOUD=0 desliga (ver config.ts).
+const cursorCloud = config.cursorCloud ? new CursorCloudSource({ accounts, office, config: config.cursorCloud }) : undefined;
+if (cursorCloud) agents.add(cursorCloud);
 // Eventos dos hooks do Codex (POST /api/codex/events, mod/habblaud-codex/hook.mjs): vão para a fonte do Codex ao vivo
 // (CodexLive); sem ela (nenhuma pasta do Codex ou HABBLAUD_CODEX=0) a rota responde {ok: false}.
 const codexLive: CodexLive | undefined = codex;
@@ -491,6 +496,10 @@ server.listen(config.port, config.host, () => {
   } else {
     log.info(tr('   Codex: {0}.', [config.codex ? tr('nenhuma pasta do Codex encontrada (defina HABBLAUD_CODEX_DIRS)') : tr('desligado (HABBLAUD_CODEX=0)')]));
   }
+  if (cursorCloud) {
+    const [src] = cursorCloud.sources();
+    log.info(tr('   Cursor (nuvem): ligado, {0} agente(s) no escritório (só observação).', [src?.sessions ?? 0]));
+  } else if (config.cursorCloudWarning) log.warn(`   ${config.cursorCloudWarning}`);
   if (office.isDemo()) log.info(tr('   Modo demonstração ligado (agentes simulados misturados aos reais).'));
   if (config.terminal) log.info(tr('   Terminal: ligado (acesso só local).'));
   else log.info(tr('   Terminal: desligado ({0}).', [terminalOffReason(process.env, config.host, config.inDocker)]));
